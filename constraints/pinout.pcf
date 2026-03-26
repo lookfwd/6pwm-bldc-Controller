@@ -1,0 +1,22 @@
+# Pin Constraint File for iCE40HX1K (TQ144 package)
+# Adjust pin numbers to match your specific board layout.
+
+# Clock input (12 MHz crystal)
+set_io clk_12m  21
+
+# UART
+set_io uart_rx  1
+
+# Gate outputs (active high, accent accent accent accent to gate driver)
+set_io gate[0]  3    # UH - Phase U High-side
+set_io gate[1]  4    # UL - Phase U Low-side
+set_io gate[2]  7    # VH - Phase V High-side
+set_io gate[3]  8    # VL - Phase V Low-side
+set_io gate[4]  9    # WH - Phase W High-side
+set_io gate[5]  10   # WL - Phase W Low-side
+
+# ADC sync (CONVST trigger for ADS8319)
+set_io adc_sync 11
+
+# Status LED (active high)
+set_io led_heartbeat 95
