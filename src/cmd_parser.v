@@ -41,6 +41,14 @@ module cmd_parser (
     reg        upd_phase_inc;
     reg        upd_amplitude;
 
+    // State-transition lock: forces ctrl_state to OPEN for ≥ dead_time fast cycles
+    // before any non-OPEN destination, preventing shoot-through across RUNNING ↔
+    // BRAKE. dead_time = 50 fast cycles; with the 4:1 gear ratio, 13 slow cycles
+    // gives 52 fast cycles of OPEN — comfortably above the floor.
+    localparam [3:0] STATE_LOCK_SLOW = 4'd13;
+    reg [3:0] state_lock_cnt;
+    reg [1:0] pending_state;
+
     // Packet reception
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -53,6 +61,8 @@ module cmd_parser (
             upd_state      <= 1'b0;
             upd_phase_inc  <= 1'b0;
             upd_amplitude  <= 1'b0;
+            state_lock_cnt <= 4'd0;
+            pending_state  <= 2'd0;
         end else begin
             if (rx_valid) begin
                 if (byte_cnt == 3'd0) begin
@@ -91,8 +101,15 @@ module cmd_parser (
             // Atomic swap: shadow -> active at pwm_sync
             if (pwm_sync) begin
                 if (upd_state) begin
-                    ctrl_state <= next_state;
-                    upd_state  <= 1'b0;
+                    // Force OPEN sandwich on every actual state change.
+                    // The fast-domain deadtime no longer self-enforces transition
+                    // dead-time, so the lock here is the sole shoot-through guard.
+                    if (next_state != ctrl_state) begin
+                        ctrl_state     <= 2'd0;            // OPEN
+                        pending_state  <= next_state;
+                        state_lock_cnt <= STATE_LOCK_SLOW;
+                    end
+                    upd_state <= 1'b0;
                 end
                 if (upd_phase_inc) begin
                     phase_inc     <= next_phase_inc;
@@ -102,6 +119,13 @@ module cmd_parser (
                     amplitude     <= next_amplitude;
                     upd_amplitude <= 1'b0;
                 end
+            end
+
+            // Tick the transition lock; release into pending_state when it expires.
+            if (state_lock_cnt != 4'd0) begin
+                state_lock_cnt <= state_lock_cnt - 4'd1;
+                if (state_lock_cnt == 4'd1)
+                    ctrl_state <= pending_state;
             end
         end
     end

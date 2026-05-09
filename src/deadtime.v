@@ -1,89 +1,76 @@
-// Dead-Time Insertion for One Half-Bridge
-// Handles OPEN/RUNNING/BRAKE natively — no external output mux needed.
-// This guarantees dead-time is always respected during state transitions.
+// Dead-Time Insertion for One Half-Bridge — direct counter-vs-threshold compares.
 //
-// OPEN    (0): both gates LOW
-// RUNNING (1): SPWM with dead-time insertion
-// BRAKE   (2): high-side LOW, low-side HIGH (with dead-time on entry)
+// The asymmetry between up- and down-counting paths inserts dead-time naturally:
+//   Up-counting   : gate_high = (counter <  duty),           gate_low = (counter >= duty + dead_time)
+//   Down-counting : gate_high = (counter <  duty - dead_time), gate_low = (counter >= duty)
+//
+// The four 11-bit compares are registered to keep the carry chains off the
+// gate-FF setup path (otherwise nextpnr can't route the full chain + state mux
+// in one fast cycle). Net latency: 2 fast cycles from counter change to gate
+// (~24 ns at 82.5 MHz) — invisible compared to the 50 µs PWM period.
+//
+// Dead-time on ctrl_state transitions is enforced upstream in cmd_parser, which
+// inserts an OPEN period of ≥ dead_time fast cycles before any non-OPEN state.
+// That guarantees no shoot-through across RUNNING ↔ BRAKE.
 
 module deadtime (
     input  wire        clk,
     input  wire        rst_n,
-    input  wire [1:0]  ctrl_state,   // 0=OPEN, 1=RUNNING, 2=BRAKE
+    input  wire [1:0]  ctrl_state,    // 0=OPEN, 1=RUNNING, 2=BRAKE
+    input  wire        direction,     // 0 = counting up, 1 = counting down
     input  wire [10:0] counter,
     input  wire [10:0] duty,
-    input  wire [7:0]  dead_time,    // guard interval in clock cycles
+    input  wire [10:0] duty_minus_dt, // saturating: max(duty - dead_time, 0)
+    input  wire [10:0] duty_plus_dt,  // saturating: min(duty + dead_time, 2047)
     output reg         gate_high,
     output reg         gate_low
 );
 
-    // Desired gate state before dead-time enforcement.
-    // Registered to break the 11-bit (counter < duty) carry chain out of
-    // the gate-flop CE setup path; adds one fast cycle of latency.
-    // `keep` prevents abc9 from retiming these registers away.
-    (* keep = "true" *) reg req_high;
-    (* keep = "true" *) reg req_low;
+    // Registered compare results — cuts the 11-bit carry chain off the
+    // gate-FF critical path. Each compare is its own short flop-to-flop hop.
+    reg cmp_lt_duty;          // counter <  duty
+    reg cmp_lt_duty_minus_dt; // counter <  duty - dead_time
+    reg cmp_ge_duty;          // counter >= duty
+    reg cmp_ge_duty_plus_dt;  // counter >= duty + dead_time
+    reg dir_reg;              // registered alongside the compares for phase alignment
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            req_high <= 1'b0;
-            req_low  <= 1'b0;
+            cmp_lt_duty          <= 1'b0;
+            cmp_lt_duty_minus_dt <= 1'b0;
+            cmp_ge_duty          <= 1'b0;
+            cmp_ge_duty_plus_dt  <= 1'b0;
+            dir_reg              <= 1'b0;
         end else begin
-            case (ctrl_state)
-                2'd0: begin    // OPEN — all off
-                    req_high <= 1'b0;
-                    req_low  <= 1'b0;
-                end
-                2'd1: begin    // RUNNING — SPWM
-                    req_high <= (counter < duty);
-                    req_low  <= ~(counter < duty);
-                end
-                2'd2: begin    // BRAKE — low-side on
-                    req_high <= 1'b0;
-                    req_low  <= 1'b1;
-                end
-                default: begin
-                    req_high <= 1'b0;
-                    req_low  <= 1'b0;
-                end
-            endcase
+            cmp_lt_duty          <= (counter <  duty);
+            cmp_lt_duty_minus_dt <= (counter <  duty_minus_dt);
+            cmp_ge_duty          <= (counter >= duty);
+            cmp_ge_duty_plus_dt  <= (counter >= duty_plus_dt);
+            dir_reg              <= direction;
         end
     end
-
-    // Dead-time enforcement: any 0→1 transition is delayed by dead_time clocks.
-    // Any 1→0 transition is immediate. This ensures both gates are never on
-    // simultaneously, including during state transitions (e.g. RUNNING→BRAKE).
-
-    reg [7:0] dt_cnt_h, dt_cnt_l;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             gate_high <= 1'b0;
             gate_low  <= 1'b0;
-            dt_cnt_h  <= 8'd0;
-            dt_cnt_l  <= 8'd0;
         end else begin
-            // High-side dead-time logic
-            if (!req_high) begin
-                gate_high <= 1'b0;
-                dt_cnt_h  <= 8'd0;
-            end else if (dt_cnt_h < dead_time) begin
-                dt_cnt_h  <= dt_cnt_h + 8'd1;
-                gate_high <= 1'b0;
-            end else begin
-                gate_high <= 1'b1;
-            end
-
-            // Low-side dead-time logic
-            if (!req_low) begin
-                gate_low <= 1'b0;
-                dt_cnt_l <= 8'd0;
-            end else if (dt_cnt_l < dead_time) begin
-                dt_cnt_l <= dt_cnt_l + 8'd1;
-                gate_low <= 1'b0;
-            end else begin
-                gate_low <= 1'b1;
-            end
+            case (ctrl_state)
+                2'd1: begin    // RUNNING — pick the right registered compare
+                    gate_high <= (dir_reg == 1'b0) ? cmp_lt_duty
+                                                   : cmp_lt_duty_minus_dt;
+                    gate_low  <= (dir_reg == 1'b0) ? cmp_ge_duty_plus_dt
+                                                   : cmp_ge_duty;
+                end
+                2'd2: begin    // BRAKE — caller guarantees OPEN-sandwich before entry
+                    gate_high <= 1'b0;
+                    gate_low  <= 1'b1;
+                end
+                default: begin // OPEN (00) or invalid (11)
+                    gate_high <= 1'b0;
+                    gate_low  <= 1'b0;
+                end
+            endcase
         end
     end
 

@@ -128,41 +128,66 @@ module top (
     );
 
     // ---- Dead-Time Insertion (3 channels, fast domain) ----
-    localparam DEAD_TIME = 8'd50;  // ~606 ns at 82.5 MHz
+    // Dead-time is folded into the duty thresholds upstream rather than enforced
+    // by counters in the fast domain — eliminates the deep CE network that was
+    // previously the timing bottleneck. cmd_parser inserts an OPEN sandwich
+    // around any ctrl_state change to cover state-transition shoot-through.
+    localparam [10:0] DEAD_TIME = 11'd50;  // ~606 ns at 82.5 MHz
+
+    // Saturating duty ± dead_time per phase. These are slow-domain combinational
+    // signals (stable for the entire PWM period since duty_X is).
+    wire [10:0] duty_u_minus_dt = (duty_u >= DEAD_TIME)
+                                  ? duty_u - DEAD_TIME : 11'd0;
+    wire [10:0] duty_u_plus_dt  = (duty_u + DEAD_TIME > 11'd2047)
+                                  ? 11'd2047 : duty_u + DEAD_TIME;
+    wire [10:0] duty_v_minus_dt = (duty_v >= DEAD_TIME)
+                                  ? duty_v - DEAD_TIME : 11'd0;
+    wire [10:0] duty_v_plus_dt  = (duty_v + DEAD_TIME > 11'd2047)
+                                  ? 11'd2047 : duty_v + DEAD_TIME;
+    wire [10:0] duty_w_minus_dt = (duty_w >= DEAD_TIME)
+                                  ? duty_w - DEAD_TIME : 11'd0;
+    wire [10:0] duty_w_plus_dt  = (duty_w + DEAD_TIME > 11'd2047)
+                                  ? 11'd2047 : duty_w + DEAD_TIME;
 
     wire gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl;
 
     deadtime u_dt_u (
-        .clk        (clk_fast),
-        .rst_n      (rst_n),
-        .ctrl_state (ctrl_state),
-        .counter    (pwm_counter),
-        .duty       (duty_u),
-        .dead_time  (DEAD_TIME),
-        .gate_high  (gate_uh),
-        .gate_low   (gate_ul)
+        .clk           (clk_fast),
+        .rst_n         (rst_n),
+        .ctrl_state    (ctrl_state),
+        .direction     (pwm_dir),
+        .counter       (pwm_counter),
+        .duty          (duty_u),
+        .duty_minus_dt (duty_u_minus_dt),
+        .duty_plus_dt  (duty_u_plus_dt),
+        .gate_high     (gate_uh),
+        .gate_low      (gate_ul)
     );
 
     deadtime u_dt_v (
-        .clk        (clk_fast),
-        .rst_n      (rst_n),
-        .ctrl_state (ctrl_state),
-        .counter    (pwm_counter),
-        .duty       (duty_v),
-        .dead_time  (DEAD_TIME),
-        .gate_high  (gate_vh),
-        .gate_low   (gate_vl)
+        .clk           (clk_fast),
+        .rst_n         (rst_n),
+        .ctrl_state    (ctrl_state),
+        .direction     (pwm_dir),
+        .counter       (pwm_counter),
+        .duty          (duty_v),
+        .duty_minus_dt (duty_v_minus_dt),
+        .duty_plus_dt  (duty_v_plus_dt),
+        .gate_high     (gate_vh),
+        .gate_low      (gate_vl)
     );
 
     deadtime u_dt_w (
-        .clk        (clk_fast),
-        .rst_n      (rst_n),
-        .ctrl_state (ctrl_state),
-        .counter    (pwm_counter),
-        .duty       (duty_w),
-        .dead_time  (DEAD_TIME),
-        .gate_high  (gate_wh),
-        .gate_low   (gate_wl)
+        .clk           (clk_fast),
+        .rst_n         (rst_n),
+        .ctrl_state    (ctrl_state),
+        .direction     (pwm_dir),
+        .counter       (pwm_counter),
+        .duty          (duty_w),
+        .duty_minus_dt (duty_w_minus_dt),
+        .duty_plus_dt  (duty_w_plus_dt),
+        .gate_high     (gate_wh),
+        .gate_low      (gate_wl)
     );
 
     assign gate = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
