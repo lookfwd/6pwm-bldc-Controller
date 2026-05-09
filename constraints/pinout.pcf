@@ -1,22 +1,23 @@
-# Pin Constraint File for iCE40HX1K (TQ144 package)
+# Pin Constraint File for iCESugar v1.5 (iCE40UP5K-SG48)
 # Adjust pin numbers to match your specific board layout.
 
 # Clock input (12 MHz crystal)
-set_io clk_12m  21
+set_io clk_12m 35
 
 # UART
-set_io uart_rx  1
+set_io uart_rx  4
+set_io uarat_tx 6
 
 # Gate outputs (active high, accent accent accent accent to gate driver)
-set_io gate[0]  3    # UH - Phase U High-side
-set_io gate[1]  4    # UL - Phase U Low-side
-set_io gate[2]  7    # VH - Phase V High-side
-set_io gate[3]  8    # VL - Phase V Low-side
-set_io gate[4]  9    # WH - Phase W High-side
-set_io gate[5]  10   # WL - Phase W Low-side
+set_io gate[0]  46   # UH - Phase U High-side
+set_io gate[1]  45   # UL - Phase U Low-side
+set_io gate[2]  44   # VH - Phase V High-side
+set_io gate[3]  43   # VL - Phase V Low-side
+set_io gate[4]  42   # WH - Phase W High-side
+set_io gate[5]  38   # WL - Phase W Low-side
 
 # ADC sync (CONVST trigger for ADS8319)
-set_io adc_sync 11
+set_io adc_sync 37
 
-# Status LED (active high)
-set_io led_heartbeat 95
+# Status LED (active high - Blue)
+set_io led_heartbeat 39

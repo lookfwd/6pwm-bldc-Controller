@@ -1,8 +1,8 @@
 # iCE40 SPWM Motor Controller Build System
 # Requires: yosys, nextpnr-ice40, icepack, icetime, iceprog, iverilog, vvp
 
-DEVICE   = hx1k
-PACKAGE  = tq144
+DEVICE   = up5k
+PACKAGE  = sg48
 PCF      = constraints/pinout.pcf
 TOP      = top
 
