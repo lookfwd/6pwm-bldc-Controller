@@ -20,7 +20,9 @@ module deadtime (
     // Desired gate state before dead-time enforcement.
     // Registered to break the 11-bit (counter < duty) carry chain out of
     // the gate-flop CE setup path; adds one fast cycle of latency.
-    reg req_high, req_low;
+    // `keep` prevents abc9 from retiming these registers away.
+    (* keep = "true" *) reg req_high;
+    (* keep = "true" *) reg req_low;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

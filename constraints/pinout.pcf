@@ -16,8 +16,8 @@ set_io gate[3]  43   # VL - Phase V Low-side
 set_io gate[4]  42   # WH - Phase W High-side
 set_io gate[5]  38   # WL - Phase W Low-side
 
-# ADC sync (CONVST trigger for ADS8319)
-set_io adc_sync 37
+# ADC sync — not currently routed (output removed from top to free routing).
+# set_io adc_sync 37
 
 # Status LED (active high - Blue)
 set_io led_heartbeat 39

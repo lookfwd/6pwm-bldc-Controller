@@ -16,7 +16,6 @@ module top (
     input  wire       clk_12m,
     input  wire       uart_rx,
     output wire [5:0] gate,           // {UH, UL, VH, VL, WH, WL}
-    output wire       adc_sync,       // CONVST trigger for ADS8319
     output wire       led_heartbeat
 );
 
@@ -166,8 +165,7 @@ module top (
         .gate_low   (gate_wl)
     );
 
-    assign gate     = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
-    assign adc_sync = pwm_sync_fast;
+    assign gate = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
 
     // ---- Heartbeat LED (slow domain — ~2.5 Hz blink at 20.625 MHz) ----
     reg [22:0] hb_cnt;

@@ -7,17 +7,18 @@ module pwm_phase_correct (
     input  wire        rst_n,
     input  wire        enable,
     output reg  [10:0] counter,
-    output wire        sync,       // 1-cycle pulse at counter == 0
+    (* keep = "true" *)
+    output reg         sync,       // registered: pulses the cycle after counter == 0
     output reg         direction   // 0 = counting up, 1 = counting down
 );
-
-    assign sync = (counter == 11'd0) && (direction == 1'b0);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             counter   <= 11'd0;
             direction <= 1'b0;
+            sync      <= 1'b0;
         end else if (enable) begin
+            sync <= (counter == 11'd0) && (direction == 1'b0);
             if (direction == 1'b0) begin
                 // Counting up: 0, 1, 2, ..., 2046, 2047, then reverse
                 if (counter == 11'd2047)
