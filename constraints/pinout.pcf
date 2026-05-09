@@ -21,3 +21,8 @@ set_io adc_sync 37
 
 # Status LED (active high - Blue)
 set_io led_heartbeat 39
+
+# Per-clock frequency constraints (nextpnr-ice40 extension).
+# clk_slow is clk_fast / 4 (~20.625 MHz); without this it would inherit
+# the global --freq target and fail timing.
+set_frequency clk_slow 21

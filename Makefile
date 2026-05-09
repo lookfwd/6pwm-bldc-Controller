@@ -3,7 +3,7 @@
 
 DEVICE   = up5k
 PACKAGE  = sg48
-FREQ     = 85
+FREQ     = 83
 PCF      = constraints/pinout.pcf
 TOP      = top
 

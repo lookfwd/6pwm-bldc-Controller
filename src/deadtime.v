@@ -17,28 +17,35 @@ module deadtime (
     output reg         gate_low
 );
 
-    // Desired gate state before dead-time enforcement
+    // Desired gate state before dead-time enforcement.
+    // Registered to break the 11-bit (counter < duty) carry chain out of
+    // the gate-flop CE setup path; adds one fast cycle of latency.
     reg req_high, req_low;
 
-    always @(*) begin
-        case (ctrl_state)
-            2'd0: begin    // OPEN — all off
-                req_high = 1'b0;
-                req_low  = 1'b0;
-            end
-            2'd1: begin    // RUNNING — SPWM
-                req_high = (counter < duty);
-                req_low  = ~(counter < duty);
-            end
-            2'd2: begin    // BRAKE — low-side on
-                req_high = 1'b0;
-                req_low  = 1'b1;
-            end
-            default: begin
-                req_high = 1'b0;
-                req_low  = 1'b0;
-            end
-        endcase
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            req_high <= 1'b0;
+            req_low  <= 1'b0;
+        end else begin
+            case (ctrl_state)
+                2'd0: begin    // OPEN — all off
+                    req_high <= 1'b0;
+                    req_low  <= 1'b0;
+                end
+                2'd1: begin    // RUNNING — SPWM
+                    req_high <= (counter < duty);
+                    req_low  <= ~(counter < duty);
+                end
+                2'd2: begin    // BRAKE — low-side on
+                    req_high <= 1'b0;
+                    req_low  <= 1'b1;
+                end
+                default: begin
+                    req_high <= 1'b0;
+                    req_low  <= 1'b0;
+                end
+            endcase
+        end
     end
 
     // Dead-time enforcement: any 0→1 transition is delayed by dead_time clocks.
