@@ -8,14 +8,14 @@ module pll (
     output wire locked
 );
 
-    SB_PLL40_CORE #(
+    SB_PLL40_PAD #(
         .FEEDBACK_PATH("SIMPLE"),
         .DIVR(4'b0000),        // DIVR = 0
         .DIVF(7'b0110110),     // DIVF = 54
         .DIVQ(3'b011),         // DIVQ = 3
         .FILTER_RANGE(3'b001)  // PFD range for 12 MHz ref
     ) u_pll (
-        .REFERENCECLK(clk_12m),
+        .PACKAGEPIN(clk_12m),
         .PLLOUTCORE(clk_82m5),
         .LOCK(locked),
         .RESETB(1'b1),

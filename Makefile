@@ -3,6 +3,7 @@
 
 DEVICE   = up5k
 PACKAGE  = sg48
+FREQ     = 85
 PCF      = constraints/pinout.pcf
 TOP      = top
 
@@ -24,7 +25,7 @@ build/$(TOP).json: $(SRC) $(SINE_HEX)
 	yosys -p "read_verilog $(SRC); synth_ice40 -top $(TOP) -json $@"
 
 build/$(TOP).asc: build/$(TOP).json $(PCF)
-	nextpnr-ice40 --$(DEVICE) --package $(PACKAGE) --json $< --pcf $(PCF) --asc $@
+	nextpnr-ice40 --$(DEVICE) --package $(PACKAGE) --freq $(FREQ) --json $< --pcf $(PCF) --asc $@
 
 build/$(TOP).bin: build/$(TOP).asc
 	icepack $< $@
