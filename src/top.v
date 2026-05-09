@@ -1,8 +1,11 @@
 // Top-Level Module — iCE40 Three-Phase SPWM Motor Controller
 //
 // Two synchronously-related clock domains, 4:1 ratio:
-//   clk_fast (~82.5 MHz):  pwm_phase_correct, deadtime ×3, gate/adc_sync outputs
-//   clk_slow (~20.6 MHz):  uart_rx, cmd_parser, sine_lut, spwm_tdm, heartbeat
+//   clk_fast (~50.25 MHz): pwm_phase_correct, deadtime ×3, gate outputs
+//   clk_slow (~12.56 MHz): uart_rx, cmd_parser, sine_lut, spwm_tdm, heartbeat
+//
+// 10-bit phase-correct counter at 50.25 MHz → PWM frequency ≈ 24.5 kHz
+// (above audible threshold, comfortable margin for timing closure).
 //
 // CDC handling:
 //   pwm_sync (fast→slow): stretched to 4 fast cycles so the slow domain
@@ -19,18 +22,18 @@ module top (
     output wire       led_heartbeat
 );
 
-    // ---- Fast Clock (PLL: 12 MHz → 82.5 MHz) ----
+    // ---- Fast Clock (PLL: 12 MHz → 50.25 MHz) ----
     wire clk_fast, pll_locked;
 
     pll u_pll (
-        .clk_12m  (clk_12m),
-        .clk_82m5 (clk_fast),
-        .locked   (pll_locked)
+        .clk_12m (clk_12m),
+        .clk_50m (clk_fast),
+        .locked  (pll_locked)
     );
 
     wire rst_n = pll_locked;
 
-    // ---- Slow Clock: clk_fast / 4 (~20.625 MHz) via fabric divider + global buffer ----
+    // ---- Slow Clock: clk_fast / 4 (~12.5625 MHz) via fabric divider + global buffer ----
     reg [1:0] gear_cnt;
     always @(posedge clk_fast or negedge rst_n) begin
         if (!rst_n) gear_cnt <= 2'd0;
@@ -57,8 +60,8 @@ module top (
         pwm_sync_fast | pwm_sync_pipe[0] | pwm_sync_pipe[1] | pwm_sync_pipe[2];
 
     // ---- PWM Counter (fast domain) ----
-    wire [10:0] pwm_counter;
-    wire        pwm_dir;
+    wire [9:0] pwm_counter;
+    wire       pwm_dir;
 
     pwm_phase_correct u_pwm_cnt (
         .clk       (clk_fast),
@@ -70,11 +73,13 @@ module top (
     );
 
     // ---- UART Receiver (slow domain) ----
-    // CLK_DIV recomputed for 20.625 MHz: 20.625e6 / 115200 ≈ 179.
+    // CLK_DIV at 12.5625 MHz: 12.5625e6 / 115200 ≈ 109.05. Use 112 so
+    // SAMPLE_DIV = 112/16 = 7 gives bit period 112 cycles ≈ 8.91 µs vs
+    // nominal 8.68 µs — error +2.7%, well inside UART tolerance.
     wire [7:0] rx_data;
     wire       rx_valid;
 
-    uart_rx #(.CLK_DIV(179)) u_uart (
+    uart_rx #(.CLK_DIV(112)) u_uart (
         .clk   (clk_slow),
         .rst_n (rst_n),
         .rx    (uart_rx),
@@ -109,9 +114,9 @@ module top (
     );
 
     // ---- TDM State Machine (slow domain) ----
-    // 16 slow cycles × ~48.5 ns ≈ 776 ns per PWM period — well under 50 µs.
-    wire [10:0] duty_u, duty_v, duty_w;
-    wire        running = (ctrl_state == 2'd1);
+    // 16 slow cycles × ~80 ns ≈ 1.27 µs per PWM period — well under 41 µs.
+    wire [9:0] duty_u, duty_v, duty_w;
+    wire       running = (ctrl_state == 2'd1);
 
     spwm_tdm u_tdm (
         .clk       (clk_slow),
@@ -132,22 +137,22 @@ module top (
     // by counters in the fast domain — eliminates the deep CE network that was
     // previously the timing bottleneck. cmd_parser inserts an OPEN sandwich
     // around any ctrl_state change to cover state-transition shoot-through.
-    localparam [10:0] DEAD_TIME = 11'd50;  // ~606 ns at 82.5 MHz
+    localparam [9:0] DEAD_TIME = 10'd50;  // ~995 ns at 50.25 MHz
 
     // Saturating duty ± dead_time per phase. These are slow-domain combinational
     // signals (stable for the entire PWM period since duty_X is).
-    wire [10:0] duty_u_minus_dt = (duty_u >= DEAD_TIME)
-                                  ? duty_u - DEAD_TIME : 11'd0;
-    wire [10:0] duty_u_plus_dt  = (duty_u + DEAD_TIME > 11'd2047)
-                                  ? 11'd2047 : duty_u + DEAD_TIME;
-    wire [10:0] duty_v_minus_dt = (duty_v >= DEAD_TIME)
-                                  ? duty_v - DEAD_TIME : 11'd0;
-    wire [10:0] duty_v_plus_dt  = (duty_v + DEAD_TIME > 11'd2047)
-                                  ? 11'd2047 : duty_v + DEAD_TIME;
-    wire [10:0] duty_w_minus_dt = (duty_w >= DEAD_TIME)
-                                  ? duty_w - DEAD_TIME : 11'd0;
-    wire [10:0] duty_w_plus_dt  = (duty_w + DEAD_TIME > 11'd2047)
-                                  ? 11'd2047 : duty_w + DEAD_TIME;
+    wire [9:0] duty_u_minus_dt = (duty_u >= DEAD_TIME)
+                                 ? duty_u - DEAD_TIME : 10'd0;
+    wire [9:0] duty_u_plus_dt  = (duty_u + DEAD_TIME > 10'd1023)
+                                 ? 10'd1023 : duty_u + DEAD_TIME;
+    wire [9:0] duty_v_minus_dt = (duty_v >= DEAD_TIME)
+                                 ? duty_v - DEAD_TIME : 10'd0;
+    wire [9:0] duty_v_plus_dt  = (duty_v + DEAD_TIME > 10'd1023)
+                                 ? 10'd1023 : duty_v + DEAD_TIME;
+    wire [9:0] duty_w_minus_dt = (duty_w >= DEAD_TIME)
+                                 ? duty_w - DEAD_TIME : 10'd0;
+    wire [9:0] duty_w_plus_dt  = (duty_w + DEAD_TIME > 10'd1023)
+                                 ? 10'd1023 : duty_w + DEAD_TIME;
 
     wire gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl;
 
@@ -192,7 +197,7 @@ module top (
 
     assign gate = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
 
-    // ---- Heartbeat LED (slow domain — ~2.5 Hz blink at 20.625 MHz) ----
+    // ---- Heartbeat LED (slow domain — ~1.5 Hz blink at 12.5625 MHz) ----
     reg [22:0] hb_cnt;
     always @(posedge clk_slow or negedge rst_n) begin
         if (!rst_n) hb_cnt <= 23'd0;

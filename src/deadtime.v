@@ -18,10 +18,10 @@ module deadtime (
     input  wire        rst_n,
     input  wire [1:0]  ctrl_state,    // 0=OPEN, 1=RUNNING, 2=BRAKE
     input  wire        direction,     // 0 = counting up, 1 = counting down
-    input  wire [10:0] counter,
-    input  wire [10:0] duty,
-    input  wire [10:0] duty_minus_dt, // saturating: max(duty - dead_time, 0)
-    input  wire [10:0] duty_plus_dt,  // saturating: min(duty + dead_time, 2047)
+    input  wire [9:0]  counter,
+    input  wire [9:0]  duty,
+    input  wire [9:0]  duty_minus_dt, // saturating: max(duty - dead_time, 0)
+    input  wire [9:0]  duty_plus_dt,  // saturating: min(duty + dead_time, 1023)
     output reg         gate_high,
     output reg         gate_low
 );
