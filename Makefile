@@ -22,7 +22,7 @@ sine: $(SINE_HEX)
 
 build/$(TOP).json: $(SRC) $(SINE_HEX)
 	@mkdir -p build
-	yosys -p "read_verilog $(SRC); synth_ice40 -top $(TOP) -json $@"
+	yosys -p "read_verilog $(SRC); synth_ice40 -dsp -top $(TOP) -json $@"
 
 build/$(TOP).asc: build/$(TOP).json $(PCF)
 	nextpnr-ice40 --$(DEVICE) --package $(PACKAGE) --freq $(FREQ) --json $< --pcf $(PCF) --asc $@
