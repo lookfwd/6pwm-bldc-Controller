@@ -1,0 +1,31 @@
+# Pin Constraint File for iCESugar v1.5 (iCE40UP5K-SG48)
+# Adjust pin numbers to match your specific board layout.
+
+set_io clk 35
+set_io rst_n 4
+
+set_io bus_ctrl[0] 28
+set_io bus_ctrl[1] 2
+set_io bus_ctrl[2] 6
+set_io bus_ctrl[3] 19
+
+set_io bus[0] 23
+set_io bus[1] 25
+set_io bus[2] 26
+set_io bus[3] 27
+set_io bus[4] 32
+set_io bus[5] 31
+set_io bus[6] 37
+set_io bus[7] 34
+set_io bus[8] 3
+set_io bus[9] 36
+set_io bus[10] 20
+
+set_io sync 40
+
+set_io gate_uh  46   # UH - Phase U High-side
+set_io gate_ul  45   # UL - Phase U Low-side
+set_io gate_vh  44   # VH - Phase V High-side
+set_io gate_vl  43   # VL - Phase V Low-side
+set_io gate_wh  42   # WH - Phase W High-side
+set_io gate_wl  38   # WL - Phase W Low-side
