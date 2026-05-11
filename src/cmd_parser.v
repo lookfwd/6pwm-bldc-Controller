@@ -41,13 +41,15 @@ module cmd_parser (
     reg        upd_phase_inc;
     reg        upd_amplitude;
 
-    // State-transition lock: forces ctrl_state to OPEN for ≥ dead_time fast cycles
+    // State-transition lock: forces ctrl_state to OPEN for one full PWM period
     // before any non-OPEN destination, preventing shoot-through across RUNNING ↔
-    // BRAKE. dead_time = 50 fast cycles; with the 4:1 gear ratio, 13 slow cycles
-    // gives 52 fast cycles of OPEN — comfortably above the floor.
-    localparam [3:0] STATE_LOCK_SLOW = 4'd13;
-    reg [3:0] state_lock_cnt;
-    reg [1:0] pending_state;
+    // BRAKE transitions. PWM period = 4096 fast cycles = 1024 slow cycles (at
+    // the 4:1 gear ratio). Adding margin: 1100 slow cycles ≈ 1.07 PWM periods,
+    // guaranteeing the fast-domain pipeline (3-5 stages depending on variant)
+    // fully drains OPEN values before the new state takes effect.
+    localparam [10:0] STATE_LOCK_SLOW = 11'd1100;
+    reg [10:0] state_lock_cnt;
+    reg [1:0]  pending_state;
 
     // Packet reception
     always @(posedge clk or negedge rst_n) begin
@@ -61,7 +63,7 @@ module cmd_parser (
             upd_state      <= 1'b0;
             upd_phase_inc  <= 1'b0;
             upd_amplitude  <= 1'b0;
-            state_lock_cnt <= 4'd0;
+            state_lock_cnt <= 11'd0;
             pending_state  <= 2'd0;
         end else begin
             if (rx_valid) begin
@@ -122,9 +124,9 @@ module cmd_parser (
             end
 
             // Tick the transition lock; release into pending_state when it expires.
-            if (state_lock_cnt != 4'd0) begin
-                state_lock_cnt <= state_lock_cnt - 4'd1;
-                if (state_lock_cnt == 4'd1)
+            if (state_lock_cnt != 11'd0) begin
+                state_lock_cnt <= state_lock_cnt - 11'd1;
+                if (state_lock_cnt == 11'd1)
                     ctrl_state <= pending_state;
             end
         end

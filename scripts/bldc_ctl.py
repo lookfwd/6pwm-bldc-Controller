@@ -41,8 +41,8 @@ import serial
 
 
 # PWM frequency = clk_fast / (2 * counter_period)
-#               = 50.25 MHz / (2 * 1024)
-F_PWM_HZ = 50_250_000 / (2 * 1024)   # ≈ 24536.13 Hz
+#               = 82.5 MHz / (2 * 2048)
+F_PWM_HZ = 82_500_000 / (2 * 2048)   # ≈ 20141.60 Hz
 
 
 class Controller:

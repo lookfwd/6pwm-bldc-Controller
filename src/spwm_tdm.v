@@ -7,8 +7,8 @@
 // Per-phase flow: SET_ADDR -> WAIT_BRAM -> LOAD_MULT -> WAIT_MULT -> STORE
 // Total: 16 states, 16 clock cycles (~318 ns at 50.25 MHz)
 //
-// Math: duty = (sine_16bit * amplitude_8bit + 0x2000) >> 14
-//       24-bit product, rounded, truncated to 10 bits
+// Math: duty = (sine_16bit * amplitude_8bit + 0x1000) >> 13
+//       24-bit product, rounded, truncated to 11 bits
 
 module spwm_tdm (
     input  wire        clk,
@@ -19,9 +19,9 @@ module spwm_tdm (
     input  wire [7:0]  amplitude,
     input  wire [15:0] lut_data,    // from sine_lut (1-cycle latency)
     output reg  [10:0] lut_addr,    // to sine_lut (still 2048-entry table)
-    output reg  [9:0]  duty_u,
-    output reg  [9:0]  duty_v,
-    output reg  [9:0]  duty_w
+    output reg  [10:0] duty_u,
+    output reg  [10:0] duty_v,
+    output reg  [10:0] duty_w
 );
 
     // Phase offsets for 120-degree spacing in 11-bit address space
@@ -62,17 +62,18 @@ module spwm_tdm (
         mult_result <= mult_a * mult_b;
     end
 
-    // Rounding: add half-LSB (2^13 = 0x2000) then shift right 14
-    wire [9:0] rounded_duty = (mult_result + 24'h2000) >> 14;
+    // Rounding: add half-LSB (2^12 = 0x1000) then shift right 13
+    // for 11-bit duty (range 0..2047, centered ~1024)
+    wire [10:0] rounded_duty = (mult_result + 24'h1000) >> 13;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state    <= IDLE;
             nco_acc  <= 32'd0;
             lut_addr <= 11'd0;
-            duty_u   <= 10'd0;
-            duty_v   <= 10'd0;
-            duty_w   <= 10'd0;
+            duty_u   <= 11'd0;
+            duty_v   <= 11'd0;
+            duty_w   <= 11'd0;
             mult_a   <= 16'd0;
             mult_b   <= 8'd0;
         end else begin

@@ -1,56 +1,66 @@
 # iCE40 Three-Phase SPWM Motor Controller
 
-FPGA-based sinusoidal PWM (SPWM) controller for three-phase brushless motors, targeting the Lattice iCE40HX1K. Designed as the high-speed complement to an STM32G4 "brain" in a split-task architecture.
+FPGA-based sinusoidal PWM (SPWM) controller for three-phase brushless motors, targeting the Lattice iCE40UP5K-SG48. It's a high-speed 11-bit / 82.5 MHz design.
 
 ## System Architecture
 
 ```
-  STM32G4 (Brain/AI)              iCE40 FPGA (High-Speed PWM)
- ┌─────────────────┐             ┌──────────────────────────────┐
+  Processor (Brain/AI)             iCE40 FPGA (High-Speed PWM)
+ ┌──────────────────┐            ┌──────────────────────────────┐
  │  FOC / Control   │── UART ───▶│  UART RX                     │
  │  Algorithms      │  115200    │    ↓                         │
  │                  │            │  Command Parser              │
- │  ADC Sampling    │◀── Sync ──│    ↓ (shadow registers)      │
- │                  │   Pulse   │  NCO → Sine LUT → TDM Calc   │
- └─────────────────┘            │    ↓                         │
-                                │  Phase-Correct PWM + Dead-Time│
-                                │    ↓                         │
-                                │  6 Gate Outputs (UH/UL/VH/VL/WH/WL)
-                                └──────────────────────────────┘
+ │                  │            │    ↓ (shadow registers)      │
+ │                  │            │  NCO → Sine LUT → TDM Calc   │
+ └──────────────────┘            │    ↓                         │
+                                 │ Phase-Correct PWM + Dead-Time│
+                                 │    ↓                         │
+                                 │  6 Outputs (UH/L,VH/L,WH/L)  │
+                                 └──────────────────────────────┘
 ```
 
-**STM32G4** handles closed-loop control (FOC), current sensing, and high-level state decisions.
+**Processor** handles closed-loop control (FOC), current sensing, and high-level state decisions.
 **iCE40 FPGA** handles deterministic, jitter-free PWM generation with dead-time insertion.
 
 ## Clocking
 
 - **Input**: 12 MHz external crystal
-- **PLL Output**: 82.5 MHz (via `SB_PLL40_CORE`, DIVR=0, DIVF=54, DIVQ=3)
-- **PWM Frequency**: 82.5 MHz / (2 × 2048) ≈ 20.14 kHz (phase-correct up-down mode)
+- **PLL Output**: 82.5 MHz (via `SB_PLL40_PAD`, DIVR=0, DIVF=54, DIVQ=3)
+- **PWM Frequency**: 82.5 MHz / (2 × 2048) ≈ 20.14 kHz (phase-correct up-down mode). The ideal target of 81.920 MHz (for exact 20.000 kHz) is not achievable from a 12 MHz reference on iCE40.
 - **PWM Resolution**: 11-bit (2048 steps)
 
-The ideal target of 81.920 MHz (for exact 20.000 kHz) is not achievable from a 12 MHz reference on iCE40. The 82.5 MHz selection preserves an exact 11-bit power-of-two counter (0–2047) at the cost of 0.7% frequency deviation — well within motor control tolerances.
+## Module Description
 
-### PLL Parameters
+Clock domains. There are two clock domains, the fast and a synchronous slow with 1:4 gearing.
 
-| Parameter      | Value       | Meaning                         |
-|---------------|-------------|----------------------------------|
-| DIVR          | 0           | Reference divider (÷1)          |
-| DIVF          | 54          | Feedback divider (÷55)          |
-| DIVQ          | 3           | Output divider (÷8)             |
-| FILTER_RANGE  | 1           | PFD frequency range             |
-| F_VCO         | 660 MHz     | 12 × 55 = 660 MHz               |
-| F_OUT         | 82.5 MHz    | 660 / 8 = 82.5 MHz              |
+### `pll.v` - Clock Generator
+Wraps `SB_PLL40_PAD` to multiply the 12 MHz input to 82.5 MHz.
 
-## Module Descriptions
+### `pwm_phase_correct_{pipelined,twin,brams}.v` - Phase-Correct PWM + Gate Generator
+Each variant is a self-contained fast-domain block that walks a 11-bit triangle counter (0 → 2047 → 0) and emits the six gate signals with symmetric dead-time. The 3 variations are:
+- **pipelined** — single up/down counter with registered passthrough copies of `addr` feeding each phase's compare lanes.
+- **twin** — one incrementing and one decrementing counter, eliminating the shared up/down adder.
+- **brams** — counter materialized as a 4096 × 12-bit BRAM lookup table.
 
-### `pll.v` — Clock Generator
-Wraps `SB_PLL40_CORE` to multiply the 12 MHz input to 82.5 MHz.
+All three present the same external interface (6 pre-saturated `duty_*_minus_dt_half` / `_plus_dt_half` thresholds plus `sync` and 6 gate outputs), so they're swappable via a single `-DVARIANT_*` synthesis define. See [Variant Selection & Synthesis Comparison](#variant-selection--synthesis-comparison) below for measured Fmax / utilization head-to-head.
 
-### `pwm_phase_correct.v` — Phase-Correct PWM Counter
-11-bit up-down counter (0 → 2047 → 0). Generates:
-- `sync` pulse at counter == 0 (triggers TDM recalculation and shadow register swap)
-- `direction` signal (0 = counting up, 1 = counting down)
+We keep all three - especially the BRAM and the alternative ones, because timing closure and slack relies on things that aren't that well under our control i.e. the placement of units and the routing delay between them. It's worth examining which of the 3 gives best timing by running `make top_compare`.
+
+### `pwm_gate_unit.v` — Variant-Selecting Wrapper
+Sits between the slow-domain command logic and the fast-domain PWM variant. Owns:
+1. Saturating `duty ± dt/2` arithmetic in 12-bit intermediate (slow-domain combinational).
+2. `ctrl_state` → threshold encoding (OPEN, RUNNING, BRAKE).
+3. `ifdef`-selected instantiation of `pwm_phase_correct_pipelined` / `_twin` / `_brams`.
+
+State encoding into the threshold pair (`duty_*_minus_dt_half`, `duty_*_plus_dt_half`):
+
+| State   | `_minus_dt_half` | `_plus_dt_half` | Effect on gates |
+|---------|------------------|-----------------|-----------------|
+| OPEN    | 0                | 2047            | high always 0; low fires only at the 2-cycle triangle peak ≈ both off |
+| BRAKE   | 0                | 0               | high always 0; low always 1 |
+| RUNNING | sat(duty − dt/2) | sat(duty + dt/2)| symmetric SPWM with `dt` dead-time |
+
+The slow-domain `cmd_parser` holds `ctrl_state == OPEN` for one full PWM period after every state change as a shoot-through guard. Default `DEAD_TIME = 50` fast cycles ≈ 606 ns.
 
 ### `sine_lut.v` — Sine Lookup Table (BRAM)
 2048-entry × 16-bit synchronous ROM initialized from `sine_init.hex`.
@@ -62,8 +72,8 @@ Wraps `SB_PLL40_CORE` to multiply the 12 MHz input to 82.5 MHz.
 
 This encoding eliminates signed arithmetic in the downstream multiply. The BRAM has **1-cycle read latency** — the TDM state machine accounts for this.
 
-### `spwm_tdm.v` — TDM State Machine with Integrated NCO (Core)
-A single shared multiplier calculates duty cycles for all three phases sequentially. This saves ~400 LCs compared to three parallel multipliers.
+### `spwm_tdm.v` — Time-Division Multiplexing. (TDM) State Machine with Integrated NCO (Core)
+A single shared multiplier calculates duty cycles for all three phases sequentially.
 
 The 32-bit NCO phase accumulator is integrated directly into the TDM module rather than being a separate module. This is architecturally correct because the TDM sequentially accesses a single-port sine LUT — having a separate NCO output all three phases concurrently would defeat the TDM strategy. The accumulator advances in the IDLE state, then phase offsets for U (+0), V (+683), W (+1365) are computed sequentially as each phase accesses the LUT.
 
@@ -110,25 +120,6 @@ STORE_W         duty_w ← (product + 0x1000) >> 13              Fix #4
 
 **Timing**: 16 clocks × 12.1 ns = 194 ns per PWM cycle. The PWM period is ~49.6 µs, so TDM computation occupies only 0.39% of available time.
 
-#### Bugs Fixed from Original Design
-
-| # | Bug | Root Cause | Fix |
-|---|-----|-----------|-----|
-| 1 | BRAM pipeline hazard | `lut_data` read in same cycle as `lut_addr` set; synchronous BRAM has 1-cycle latency | Added WAIT_BRAM states |
-| 2 | Missing multiplier inputs for V/W | Only phase U loaded `mult_a`/`mult_b`; V and W multiplied stale values | Explicit LOAD_MULT for every phase |
-| 3 | Ambiguous `mult_ready` timing | `mult_ready` checked in same state as input load; no pipeline delay | Separate WAIT_MULT states with registered multiplier |
-| 4 | Truncation without rounding | `result[23:13]` truncation introduces DC offset | Add `0x1000` (half-LSB) before `>> 13` |
-
-### `deadtime.v` — Dead-Time Insertion with State Control (per half-bridge)
-Handles OPEN/RUNNING/BRAKE gate logic natively — there is no output mux in `top.v`. This eliminates a shoot-through hazard: if an external mux switched from RUNNING to BRAKE while a high-side gate was active, forcing the low-side ON immediately would cause shoot-through. By integrating state control into the dead-time module, every gate transition (including state changes) passes through the dead-time guard.
-
-- **OPEN**: both gates driven LOW
-- **RUNNING**: SPWM with dead-time insertion on every transition
-- **BRAKE**: high-side OFF, low-side ON — but the 0→1 transition on the low-side still waits `dead_time` clocks
-- 8-bit dead-time counter → max 255 cycles × 12.1 ns ≈ 3.1 µs
-- Default dead-time of 50 counts = 606 ns (typical for mid-range MOSFETs)
-- Instantiated 3× (one per phase: U, V, W)
-
 ### `uart_rx.v` — UART Receiver
 Standard 8N1 UART receiver at 115200 baud.
 - Clock divider: round(82.5e6 / 115200) = 716 → actual baud 115,223 (0.02% error)
@@ -156,18 +147,36 @@ Decodes 5-byte UART packets and manages shadow registers for glitch-free paramet
 | RUNNING | SPWM      | SPWM      | Controlled sinusoidal current |
 | BRAKE   | All LOW   | All HIGH  | Dynamic braking (windings shorted) |
 
-State transitions from the command parser are gated on `pwm_sync`. The `deadtime` modules enforce dead-time on every gate change — including state transitions — so even if `ctrl_state` changes mid-cycle, no shoot-through can occur.
+State transitions from the command parser are gated on `pwm_sync` and additionally sandwiched by one full PWM period of OPEN before the new state takes effect. Symmetric dead-time is enforced on every gate edge by the threshold encoding inside `pwm_gate_unit.v`, so even mid-cycle `ctrl_state` changes can't produce shoot-through.
 
 ## Resource Budget
 
-| Resource | Estimate | iCE40HX1K Limit |
-|----------|----------|------------------|
-| Logic Cells | ~700–800 | 1280 |
-| EBR (BRAM) | 1 block (sine LUT) | 16 blocks |
-| PLL | 1 | 1 |
-| I/O Pins | ~9 (6 gates + UART + clk + LED) | 96 |
+Integrated post-route numbers on iCE40UP5K-SG48 (default `VARIANT = PIPE`; see [Variant Selection & Synthesis Comparison](#variant-selection--synthesis-comparison) for the other two):
 
-The iCE40HX has no hard multiplier. The 16×8-bit multiply is synthesized in fabric (~150–200 LCs).
+| Resource     | Used | UP5K Limit | Notes |
+|--------------|-----:|-----------:|-------|
+| ICESTORM_LC  |  794 | 5280 (15%) | rises to 800–820 for `twin`, drops to 698 for `brams` |
+| ICESTORM_RAM |    8 |   30 (26%) | rises to 20 for `brams` |
+| ICESTORM_DSP |    1 |    8 (12%) | the 16×8 multiply infers a hard MAC on UP5K |
+| ICESTORM_PLL |    1 |    1       | 12 MHz → 82.5 MHz |
+| SB_IO        |    9 |   39 (23%) | 6 gates + UART RX + 12 MHz clock + heartbeat LED |
+| SB_GB        |    8 |    8 (100%)| global buffers fully used (clocks + CE/reset promotions) |
+
+## Variant Selection & Synthesis Comparison
+
+The fast-domain PWM block has three interchangeable implementations. All three present an identical external interface and are selected at synthesis time with `-DVARIANT_PIPE`, `-DVARIANT_TWIN`, or `-DVARIANT_BRAMS`. The Makefile exposes them as `make top_pipe`, `make top_twin`, and `make top_brams`; `make top_compare` builds all three for side-by-side timing.
+
+The numbers below are from a `nextpnr-ice40 --up5k --package sg48 --freq 85` run with the full integrated top (PLL + UART + cmd_parser + sine_lut + spwm_tdm + pwm_gate_unit + variant). All three pass the 85 MHz constraint (PLL target 82.5 MHz).
+
+| Variant     | Fmax (clk_fast)  | clk_slow  | LCs  | BRAMs | Fast-domain critical path |
+|-------------|-----------------:|----------:|-----:|------:|--------------------------:|
+| `top_pipe`  | **103.57 MHz** ★ | 61.44 MHz | 794  |  8    | 4.37 ns logic + 5.28 ns routing |
+| `top_twin`  |  86.61 MHz       | 63.02 MHz | 794  |  8    | 4.32 ns logic + 7.23 ns routing |
+| `top_brams` |  87.00 MHz       | 54.36 MHz | 698  | 20    | 4.37 ns logic + 7.12 ns routing |
+
+Logic depth is essentially identical across all three (~4.3 ns — the compare-merge into the gate FF). The differences are pure routing: the `pipelined` placement happens to find a tighter merge layout, which is why it's ~16 MHz faster despite having the same logic structure as `twin`. The `brams` variant saves 96 LCs by moving the counter into a ROM table but spends 12 extra BRAMs to do so.
+
+**Default: `VARIANT = PIPE`.** It has the largest Fmax margin over the 82.5 MHz PLL, no BRAM cost beyond the sine LUT + PWM-internal RAMs, and the same LC count as `twin`. `twin` and `brams` are kept buildable as backups in case `pipe` regresses after future changes — placement is non-deterministic, so re-runs vary by a few MHz.
 
 ## Build & Synthesis
 
@@ -186,16 +195,18 @@ python3 scripts/gen_sine_table.py > src/sine_init.hex
 ### Simulate
 ```bash
 make sim_tdm        # TDM state machine
-make sim_pwm        # PWM + dead-time
 make sim_uart       # UART receiver
 make sim_top        # Full system
 ```
 
 ### Synthesize & Program
 ```bash
-make all            # synth → pnr → bitstream
-make timing         # icetime timing analysis (verify Fmax ≥ 82.5 MHz)
-make prog           # upload to FPGA via iceprog
+make all                       # synth → pnr → bitstream using default VARIANT (PIPE)
+make all VARIANT=TWIN          # build with a different variant
+make top_pipe                  # per-variant build (also: top_twin, top_brams)
+make top_compare               # build all three, print Fmax/util side by side
+make timing                    # icetime timing analysis
+make prog                      # upload to FPGA via iceprog
 ```
 
 ## Verification Checklist
@@ -228,16 +239,31 @@ fpga-controller/
 │   ├── cmd_parser.v
 │   ├── sine_lut.v
 │   ├── spwm_tdm.v
-│   ├── pwm_phase_correct.v
-│   ├── deadtime.v
-│   └── sine_init.hex
-├── tb/
+│   ├── pwm_gate_unit.v                  # variant-selecting wrapper
+│   ├── pwm_phase_correct_pipelined.v    # variant: pipelined counter
+│   ├── pwm_phase_correct_twin.v         # variant: dual up/down counters
+│   ├── pwm_phase_correct_brams.v        # variant: BRAM lookup table
+│   ├── sine_init.hex                    # generated by scripts/gen_sine_table.py
+│   └── counter_table.hex                # generated by scripts/gen_counter_rom.py (used by brams variant)
 │   ├── tb_top.v
 │   ├── tb_spwm_tdm.v
-│   ├── tb_pwm_deadtime.v
 │   └── tb_uart_rx.v
 ├── constraints/
 │   └── pinout.pcf
 └── scripts/
-    └── gen_sine_table.py
+    ├── gen_sine_table.py
+    └── gen_counter_rom.py               # BRAM counter table for brams variant
 ```
+
+
+## Working with remote
+
+
+```
+while true
+do
+rsync -avz -e "ssh -i <>.pem" . ubuntu@<remote-ip>:~/icestick-6pwm-bldc-Controller/
+sleep 5
+done
+```
+
