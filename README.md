@@ -22,6 +22,13 @@ FPGA-based sinusoidal PWM (SPWM) controller for three-phase brushless motors, ta
 **Processor** handles closed-loop control (FOC), current sensing, and high-level state decisions.
 **iCE40 FPGA** handles deterministic, jitter-free PWM generation with dead-time insertion.
 
+## Application and Waves
+
+Using [Hilitand Motor Speed Controller, DC 5V-36V 15A 3-Phase Brushless Motor Speed Control CW CCW Reversible Switch](https://www.amazon.com/dp/B07K7LLYR7?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_9) for power bridge, which in turn uses the [JY01 brushless DC motor controller IC](https://www.insightcentral.net/attachments/jy01_v3-5_2018-english-pdf.83073/). I removed the JY01 and drove the gates from PMOD2 of [iCESugar v1.5](https://github.com/wuxx/icesugar/blob/master/README_en.md) ([schematic](https://github.com/wuxx/icesugar/blob/master/schematic/iCESugar-v1.5.pdf)).
+
+
+[![](https://img.youtube.com/vi/0ncPehXqvqU/maxresdefault.jpg)](https://www.youtube.com/watch?v=0ncPehXqvqU)
+
 ## Clocking
 
 - **Input**: 12 MHz external crystal
