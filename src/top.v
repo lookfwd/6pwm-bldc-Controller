@@ -109,8 +109,12 @@ module top (
         .data (lut_data)
     );
 
-    // ---- TDM State Machine (slow domain) — 11-bit duties ----
-    wire [10:0] u_minus, u_plus, v_minus, v_plus, w_minus, w_plus;
+    // ---- TDM State Machine (slow domain) ----
+    // duty_minus = 11-bit (gate_high never-fires at 0)
+    // duty_plus  = 12-bit (gate_low never-fires at 2048; one wider so the
+    //              comparison against 11-bit counter cleanly evaluates false)
+    wire [10:0] u_minus, v_minus, w_minus;
+    wire [11:0] u_plus,  v_plus,  w_plus;
 
     spwm_tdm #(.HALF_DEAD_TIME(11'd25)) u_tdm (
         .clk       (clk_slow),

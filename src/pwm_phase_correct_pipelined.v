@@ -21,9 +21,14 @@ module pwm_phase_correct_pipelined(
     input  wire        clk,
     input  wire        rst_n,
     // Direct duty inputs from slow domain (pre-saturated duty±dt/2).
-    input  wire [10:0] duty_u_minus_dt_half,  duty_u_plus_dt_half,
-    input  wire [10:0] duty_v_minus_dt_half,  duty_v_plus_dt_half,
-    input  wire [10:0] duty_w_minus_dt_half,  duty_w_plus_dt_half,
+    // *_minus is 11-bit (0..2047, "never on" at 0).
+    // *_plus is 12-bit (0..2048, "never on" at 2048).
+    input  wire [10:0] duty_u_minus_dt_half,
+    input  wire [11:0] duty_u_plus_dt_half,
+    input  wire [10:0] duty_v_minus_dt_half,
+    input  wire [11:0] duty_v_plus_dt_half,
+    input  wire [10:0] duty_w_minus_dt_half,
+    input  wire [11:0] duty_w_plus_dt_half,
     output reg         sync,
     output reg         gate_uh,
     output reg         gate_ul,
@@ -38,20 +43,20 @@ module pwm_phase_correct_pipelined(
     // PWM period regardless of when spwm_tdm finishes updating duties.
     // ============================================================
     reg [10:0] duty_u_minus_dt_half_reg;
-    reg [10:0] duty_u_plus_dt_half_reg;
+    reg [11:0] duty_u_plus_dt_half_reg;
     reg [10:0] duty_v_minus_dt_half_reg;
-    reg [10:0] duty_v_plus_dt_half_reg;
+    reg [11:0] duty_v_plus_dt_half_reg;
     reg [10:0] duty_w_minus_dt_half_reg;
-    reg [10:0] duty_w_plus_dt_half_reg;
+    reg [11:0] duty_w_plus_dt_half_reg;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             duty_u_minus_dt_half_reg <= 11'd0;
-            duty_u_plus_dt_half_reg  <= 11'd0;
+            duty_u_plus_dt_half_reg  <= 12'd0;
             duty_v_minus_dt_half_reg <= 11'd0;
-            duty_v_plus_dt_half_reg  <= 11'd0;
+            duty_v_plus_dt_half_reg  <= 12'd0;
             duty_w_minus_dt_half_reg <= 11'd0;
-            duty_w_plus_dt_half_reg  <= 11'd0;
+            duty_w_plus_dt_half_reg  <= 12'd0;
         end else if (sync) begin
             duty_u_minus_dt_half_reg <= duty_u_minus_dt_half;
             duty_u_plus_dt_half_reg  <= duty_u_plus_dt_half;
@@ -105,7 +110,11 @@ module pwm_phase_correct_pipelined(
     end
 
     // ============================================================
-    // Counter / duty splits (6 lsb + 5 msb).
+    // Counter / duty splits.
+    //   Both duty_minus and the LOW 11 bits of duty_plus split 5 hi + 6 lo,
+    //   so the s1 comparators are identical-sized between dmh and dph.
+    //   The 12th bit of duty_plus is a "force off" sentinel and is OR'd
+    //   directly into the s2 reduction (see Phase U/V/W blocks below).
     // ============================================================
     wire [4:0] counter_hi = counter[10:6];
     wire [5:0] counter_lo = counter[5:0];
@@ -157,8 +166,8 @@ module pwm_phase_correct_pipelined(
             s2u_lt_dmh <= 1'b0;
             s2u_lt_dph <= 1'b0;
         end else begin
-            s2u_lt_dmh <= s1u_hi_lt_dmh | (s1u_hi_eq_dmh & s1u_lo_lt_dmh);
-            s2u_lt_dph <= s1u_hi_lt_dph | (s1u_hi_eq_dph & s1u_lo_lt_dph);
+            s2u_lt_dmh <=                                s1u_hi_lt_dmh | (s1u_hi_eq_dmh & s1u_lo_lt_dmh);
+            s2u_lt_dph <= duty_u_plus_dt_half_reg[11] | s1u_hi_lt_dph | (s1u_hi_eq_dph & s1u_lo_lt_dph);
         end
     end
 
@@ -199,8 +208,8 @@ module pwm_phase_correct_pipelined(
             s2v_lt_dmh <= 1'b0;
             s2v_lt_dph <= 1'b0;
         end else begin
-            s2v_lt_dmh <= s1v_hi_lt_dmh | (s1v_hi_eq_dmh & s1v_lo_lt_dmh);
-            s2v_lt_dph <= s1v_hi_lt_dph | (s1v_hi_eq_dph & s1v_lo_lt_dph);
+            s2v_lt_dmh <=                                s1v_hi_lt_dmh | (s1v_hi_eq_dmh & s1v_lo_lt_dmh);
+            s2v_lt_dph <= duty_v_plus_dt_half_reg[11] | s1v_hi_lt_dph | (s1v_hi_eq_dph & s1v_lo_lt_dph);
         end
     end
 
@@ -241,8 +250,8 @@ module pwm_phase_correct_pipelined(
             s2w_lt_dmh <= 1'b0;
             s2w_lt_dph <= 1'b0;
         end else begin
-            s2w_lt_dmh <= s1w_hi_lt_dmh | (s1w_hi_eq_dmh & s1w_lo_lt_dmh);
-            s2w_lt_dph <= s1w_hi_lt_dph | (s1w_hi_eq_dph & s1w_lo_lt_dph);
+            s2w_lt_dmh <=                                s1w_hi_lt_dmh | (s1w_hi_eq_dmh & s1w_lo_lt_dmh);
+            s2w_lt_dph <= duty_w_plus_dt_half_reg[11] | s1w_hi_lt_dph | (s1w_hi_eq_dph & s1w_lo_lt_dph);
         end
     end
 

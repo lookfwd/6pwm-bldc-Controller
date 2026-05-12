@@ -24,14 +24,18 @@ module spwm_tdm #(
     input  wire [7:0]  amplitude,
     input  wire [15:0] lut_data,    // from sine_lut (1-cycle latency)
     output reg  [10:0] lut_addr,    // to sine_lut (still 2048-entry table)
-	
-    // Saturating duty ± HALF_DEAD_TIME (slow-domain combinational)
+
+    // Saturating duty ± HALF_DEAD_TIME.
+    //   *_minus is 11-bit (range 0..2047). Saturating to 0 naturally
+    //   represents "gate_high never fires" since counter is unsigned >= 0.
+    //   *_plus is 12-bit (range 0..2048). Saturating to 2048 represents
+    //   "gate_low never fires" since 11-bit counter is always < 2048.
     output reg  [10:0] u_minus,
-    output reg  [10:0] u_plus,
+    output reg  [11:0] u_plus,
     output reg  [10:0] v_minus,
-    output reg  [10:0] v_plus,
+    output reg  [11:0] v_plus,
     output reg  [10:0] w_minus,
-    output reg  [10:0] w_plus
+    output reg  [11:0] w_plus
 );
 
     // Phase offsets for 120-degree spacing in 11-bit address space
@@ -89,8 +93,11 @@ module spwm_tdm #(
 
 	wire [10:0] rounded_duty_minus = (rounded_duty >= HALF_DEAD_TIME)
                                    ? (rounded_duty - HALF_DEAD_TIME) : 11'd0;
-	wire [10:0] rounded_duty_plus = (rounded_duty <= (11'd2047 - HALF_DEAD_TIME))
-                                  ? (rounded_duty + HALF_DEAD_TIME) : 11'd2047;
+	// Saturate to 2048 (one above the 11-bit counter max) so that the
+	// downstream `counter >= duty_plus` comparison is always false at
+	// saturation, giving a true 0-cycle minimum for gate_low.
+	wire [11:0] rounded_duty_plus = (rounded_duty <= (11'd2047 - HALF_DEAD_TIME))
+                                  ? (rounded_duty + HALF_DEAD_TIME) : 12'd2048;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -98,11 +105,11 @@ module spwm_tdm #(
             nco_acc  <= 32'd0;
             lut_addr <= 11'd0;
 		    u_minus   <= 11'd0;
-		    u_plus   <= 11'd0;
+		    u_plus   <= 12'd0;
 		    v_minus   <= 11'd0;
-		    v_plus   <= 11'd0;
+		    v_plus   <= 12'd0;
 		    w_minus   <= 11'd0;
-		    w_plus   <= 11'd0;
+		    w_plus   <= 12'd0;
             mult_a   <= 16'd0;
             mult_b   <= 8'd0;
         end else begin
