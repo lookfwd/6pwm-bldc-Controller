@@ -134,8 +134,9 @@ module top (
 	
 	wire gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl;
 
-`ifdef VARIANT_PIPE
-    pwm_phase_correct_pipelined u_pwm (
+    // The VARIANT_* define passed at synthesis selects the counter-
+    // generation flavor inside pwm_phase_correct.
+    pwm_phase_correct u_pwm (
         .clk (clk_fast), .rst_n (rst_n),
         .duty_u_minus_dt_half (u_minus), .duty_u_plus_dt_half (u_plus),
         .duty_v_minus_dt_half (v_minus), .duty_v_plus_dt_half (v_plus),
@@ -145,35 +146,6 @@ module top (
         .gate_vh (gate_vh), .gate_vl (gate_vl),
         .gate_wh (gate_wh), .gate_wl (gate_wl)
     );
-`elsif VARIANT_TWIN
-    pwm_phase_correct_twin u_pwm (
-        .clk (clk_fast), .rst_n (rst_n),
-        .duty_u_minus_dt_half (u_minus), .duty_u_plus_dt_half (u_plus),
-        .duty_v_minus_dt_half (v_minus), .duty_v_plus_dt_half (v_plus),
-        .duty_w_minus_dt_half (w_minus), .duty_w_plus_dt_half (w_plus),
-        .sync (pwm_sync_fast),
-        .gate_uh (gate_uh), .gate_ul (gate_ul),
-        .gate_vh (gate_vh), .gate_vl (gate_vl),
-        .gate_wh (gate_wh), .gate_wl (gate_wl)
-    );
-`elsif VARIANT_BRAMS
-    pwm_phase_correct_brams u_pwm (
-        .clk (clk_fast), .rst_n (rst_n),
-        .duty_u_minus_dt_half (u_minus), .duty_u_plus_dt_half (u_plus),
-        .duty_v_minus_dt_half (v_minus), .duty_v_plus_dt_half (v_plus),
-        .duty_w_minus_dt_half (w_minus), .duty_w_plus_dt_half (w_plus),
-        .sync (pwm_sync_fast),
-        .gate_uh (gate_uh), .gate_ul (gate_ul),
-        .gate_vh (gate_vh), .gate_vl (gate_vl),
-        .gate_wh (gate_wh), .gate_wl (gate_wl)
-    );
-`else
-    // No variant define passed — synthesis will fail with unconnected
-    // module-output wires. Build with one of:
-    //   yosys -D VARIANT_PIPE   ...
-    //   yosys -D VARIANT_TWIN   ...
-    //   yosys -D VARIANT_BRAMS  ...
-`endif
 
     assign gate = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
 

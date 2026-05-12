@@ -40,7 +40,7 @@ Info: promoting pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_O [cen] (fanout 32)
 Info: promoting $PACKER_GND_NET (fanout 20)
 Info: Constraining chains...
 Info:       15 LCs used to legalise carry chains.
-Info: Checksum: 0x7c62531b
+Info: Checksum: 0xeb841dd5
 
 Info: Device utilisation:
 Info: 	         ICESTORM_LC:     722/   5280    13%
@@ -60,381 +60,381 @@ Info: 	         SB_RGBA_DRV:       0/      1     0%
 Info: 	      ICESTORM_SPRAM:       0/      4     0%
 
 Info: Placed 14 cells based on constraints.
-Info: Creating initial analytic placement for 529 cells, random placement wirelen = 15788.
-Info:     at initial placer iter 0, wirelen = 360
-Info:     at initial placer iter 1, wirelen = 363
-Info:     at initial placer iter 2, wirelen = 364
-Info:     at initial placer iter 3, wirelen = 366
+Info: Creating initial analytic placement for 529 cells, random placement wirelen = 15465.
+Info:     at initial placer iter 0, wirelen = 354
+Info:     at initial placer iter 1, wirelen = 379
+Info:     at initial placer iter 2, wirelen = 375
+Info:     at initial placer iter 3, wirelen = 357
 Info: Running main analytical placer, max placement attempts per cell = 72580.
-Info:     at iteration #1, type ICESTORM_LC: wirelen solved = 450, spread = 2438, legal = 3390; time = 0.03s
-Info:     at iteration #1, type SB_GB: wirelen solved = 3381, spread = 3526, legal = 3530; time = 0.07s
-Info:     at iteration #1, type ICESTORM_RAM: wirelen solved = 3382, spread = 4211, legal = 4397; time = 0.01s
-Info:     at iteration #1, type ICESTORM_DSP: wirelen solved = 4365, spread = 4365, legal = 4454; time = 0.01s
-Info:     at iteration #1, type ALL: wirelen solved = 389, spread = 3298, legal = 4626; time = 0.14s
-Info:     at iteration #2, type ICESTORM_LC: wirelen solved = 1863, spread = 3226, legal = 3849; time = 0.02s
-Info:     at iteration #2, type SB_GB: wirelen solved = 3749, spread = 3841, legal = 3863; time = 0.14s
-Info:     at iteration #2, type ICESTORM_RAM: wirelen solved = 3451, spread = 4090, legal = 4033; time = 0.01s
-Info:     at iteration #2, type ICESTORM_DSP: wirelen solved = 3963, spread = 3963, legal = 4033; time = 0.01s
-Info:     at iteration #2, type ALL: wirelen solved = 395, spread = 2956, legal = 4698; time = 0.09s
-Info:     at iteration #3, type ICESTORM_LC: wirelen solved = 2017, spread = 3126, legal = 4046; time = 0.02s
-Info:     at iteration #3, type SB_GB: wirelen solved = 3939, spread = 4040, legal = 4077; time = 0.17s
-Info:     at iteration #3, type ICESTORM_RAM: wirelen solved = 3511, spread = 4125, legal = 4091; time = 0.01s
-Info:     at iteration #3, type ICESTORM_DSP: wirelen solved = 4027, spread = 4027, legal = 4091; time = 0.01s
-Info:     at iteration #3, type ALL: wirelen solved = 433, spread = 3033, legal = 4740; time = 0.63s
-Info:     at iteration #4, type ICESTORM_LC: wirelen solved = 2114, spread = 3121, legal = 4005; time = 0.02s
-Info:     at iteration #4, type SB_GB: wirelen solved = 3934, spread = 3998, legal = 4005; time = 0.01s
-Info:     at iteration #4, type ICESTORM_RAM: wirelen solved = 3321, spread = 3656, legal = 3895; time = 0.01s
-Info:     at iteration #4, type ICESTORM_DSP: wirelen solved = 3860, spread = 3860, legal = 3895; time = 0.01s
-Info:     at iteration #4, type ALL: wirelen solved = 491, spread = 3150, legal = 4261; time = 0.03s
-Info:     at iteration #5, type ICESTORM_LC: wirelen solved = 2074, spread = 3407, legal = 3965; time = 0.02s
-Info:     at iteration #5, type SB_GB: wirelen solved = 3892, spread = 3959, legal = 3965; time = 0.01s
-Info:     at iteration #5, type ICESTORM_RAM: wirelen solved = 2990, spread = 3810, legal = 3829; time = 0.01s
-Info:     at iteration #5, type ICESTORM_DSP: wirelen solved = 3785, spread = 3785, legal = 3829; time = 0.01s
-Info:     at iteration #5, type ALL: wirelen solved = 576, spread = 2877, legal = 4300; time = 0.03s
-Info:     at iteration #6, type ICESTORM_LC: wirelen solved = 2143, spread = 3134, legal = 3999; time = 0.02s
-Info:     at iteration #6, type SB_GB: wirelen solved = 3916, spread = 4007, legal = 4009; time = 0.01s
-Info:     at iteration #6, type ICESTORM_RAM: wirelen solved = 3034, spread = 3956, legal = 3999; time = 0.01s
-Info:     at iteration #6, type ICESTORM_DSP: wirelen solved = 3937, spread = 3937, legal = 3999; time = 0.01s
-Info:     at iteration #6, type ALL: wirelen solved = 605, spread = 2712, legal = 4106; time = 0.03s
-Info:     at iteration #7, type ICESTORM_LC: wirelen solved = 2050, spread = 3078, legal = 3749; time = 0.02s
-Info:     at iteration #7, type SB_GB: wirelen solved = 3660, spread = 3743, legal = 3749; time = 0.01s
-Info:     at iteration #7, type ICESTORM_RAM: wirelen solved = 3104, spread = 3636, legal = 3647; time = 0.01s
-Info:     at iteration #7, type ICESTORM_DSP: wirelen solved = 3598, spread = 3598, legal = 3647; time = 0.01s
-Info:     at iteration #7, type ALL: wirelen solved = 656, spread = 2886, legal = 3855; time = 0.02s
-Info:     at iteration #8, type ICESTORM_LC: wirelen solved = 2060, spread = 2936, legal = 3480; time = 0.02s
-Info:     at iteration #8, type SB_GB: wirelen solved = 3379, spread = 3474, legal = 3480; time = 0.01s
-Info:     at iteration #8, type ICESTORM_RAM: wirelen solved = 2884, spread = 3635, legal = 3538; time = 0.01s
-Info:     at iteration #8, type ICESTORM_DSP: wirelen solved = 3472, spread = 3472, legal = 3538; time = 0.01s
-Info:     at iteration #8, type ALL: wirelen solved = 752, spread = 2756, legal = 4017; time = 0.03s
-Info:     at iteration #9, type ICESTORM_LC: wirelen solved = 2170, spread = 2992, legal = 3563; time = 0.02s
-Info:     at iteration #9, type SB_GB: wirelen solved = 3468, spread = 3557, legal = 3563; time = 0.01s
-Info:     at iteration #9, type ICESTORM_RAM: wirelen solved = 2818, spread = 3436, legal = 3641; time = 0.01s
-Info:     at iteration #9, type ICESTORM_DSP: wirelen solved = 3580, spread = 3580, legal = 3641; time = 0.01s
-Info:     at iteration #9, type ALL: wirelen solved = 729, spread = 2819, legal = 3752; time = 0.02s
-Info:     at iteration #10, type ICESTORM_LC: wirelen solved = 2223, spread = 3149, legal = 3773; time = 0.02s
-Info:     at iteration #10, type SB_GB: wirelen solved = 3683, spread = 3767, legal = 3773; time = 0.01s
-Info:     at iteration #10, type ICESTORM_RAM: wirelen solved = 2977, spread = 3670, legal = 3773; time = 0.01s
-Info:     at iteration #10, type ICESTORM_DSP: wirelen solved = 3731, spread = 3731, legal = 3773; time = 0.01s
-Info:     at iteration #10, type ALL: wirelen solved = 802, spread = 3009, legal = 3858; time = 0.02s
-Info:     at iteration #11, type ICESTORM_LC: wirelen solved = 2248, spread = 3037, legal = 3652; time = 0.02s
-Info:     at iteration #11, type SB_GB: wirelen solved = 3554, spread = 3646, legal = 3652; time = 0.01s
-Info:     at iteration #11, type ICESTORM_RAM: wirelen solved = 2927, spread = 3403, legal = 3664; time = 0.01s
-Info:     at iteration #11, type ICESTORM_DSP: wirelen solved = 3596, spread = 3596, legal = 3664; time = 0.01s
-Info:     at iteration #11, type ALL: wirelen solved = 845, spread = 2910, legal = 3868; time = 0.02s
-Info:     at iteration #12, type ICESTORM_LC: wirelen solved = 2313, spread = 2975, legal = 3566; time = 0.02s
-Info:     at iteration #12, type SB_GB: wirelen solved = 3466, spread = 3553, legal = 3559; time = 0.01s
-Info:     at iteration #12, type ICESTORM_RAM: wirelen solved = 2838, spread = 3386, legal = 3609; time = 0.01s
-Info:     at iteration #12, type ICESTORM_DSP: wirelen solved = 3536, spread = 3536, legal = 3609; time = 0.01s
-Info:     at iteration #12, type ALL: wirelen solved = 875, spread = 2834, legal = 3959; time = 0.02s
-Info:     at iteration #13, type ICESTORM_LC: wirelen solved = 2170, spread = 2974, legal = 3666; time = 0.02s
-Info:     at iteration #13, type SB_GB: wirelen solved = 3577, spread = 3675, legal = 3681; time = 0.01s
-Info:     at iteration #13, type ICESTORM_RAM: wirelen solved = 3138, spread = 3564, legal = 3621; time = 0.01s
-Info:     at iteration #13, type ICESTORM_DSP: wirelen solved = 3546, spread = 3546, legal = 3621; time = 0.01s
-Info:     at iteration #13, type ALL: wirelen solved = 914, spread = 2901, legal = 4159; time = 0.03s
-Info:     at iteration #14, type ICESTORM_LC: wirelen solved = 2322, spread = 3107, legal = 3549; time = 0.02s
-Info:     at iteration #14, type SB_GB: wirelen solved = 3466, spread = 3543, legal = 3549; time = 0.01s
-Info:     at iteration #14, type ICESTORM_RAM: wirelen solved = 2920, spread = 3480, legal = 3669; time = 0.01s
-Info:     at iteration #14, type ICESTORM_DSP: wirelen solved = 3580, spread = 3580, legal = 3669; time = 0.01s
-Info:     at iteration #14, type ALL: wirelen solved = 1071, spread = 2727, legal = 3764; time = 0.02s
-Info: HeAP Placer Time: 2.16s
-Info:   of which solving equations: 0.55s
-Info:   of which spreading cells: 0.07s
-Info:   of which strict legalisation: 1.44s
+Info:     at iteration #1, type ICESTORM_LC: wirelen solved = 439, spread = 2358, legal = 3003; time = 0.02s
+Info:     at iteration #1, type SB_GB: wirelen solved = 2996, spread = 3139, legal = 3147; time = 0.01s
+Info:     at iteration #1, type ICESTORM_RAM: wirelen solved = 3033, spread = 4023, legal = 4155; time = 0.01s
+Info:     at iteration #1, type ICESTORM_DSP: wirelen solved = 4074, spread = 4074, legal = 4181; time = 0.01s
+Info:     at iteration #1, type ALL: wirelen solved = 368, spread = 3262, legal = 4527; time = 0.17s
+Info:     at iteration #2, type ICESTORM_LC: wirelen solved = 1930, spread = 3323, legal = 4225; time = 0.02s
+Info:     at iteration #2, type SB_GB: wirelen solved = 4126, spread = 4221, legal = 4272; time = 0.18s
+Info:     at iteration #2, type ICESTORM_RAM: wirelen solved = 3717, spread = 4329, legal = 4288; time = 0.01s
+Info:     at iteration #2, type ICESTORM_DSP: wirelen solved = 4220, spread = 4220, legal = 4288; time = 0.01s
+Info:     at iteration #2, type ALL: wirelen solved = 450, spread = 3323, legal = 4793; time = 0.09s
+Info:     at iteration #3, type ICESTORM_LC: wirelen solved = 1971, spread = 3466, legal = 4265; time = 0.02s
+Info:     at iteration #3, type SB_GB: wirelen solved = 4153, spread = 4258, legal = 4265; time = 0.17s
+Info:     at iteration #3, type ICESTORM_RAM: wirelen solved = 3695, spread = 4352, legal = 4343; time = 0.01s
+Info:     at iteration #3, type ICESTORM_DSP: wirelen solved = 4287, spread = 4287, legal = 4343; time = 0.01s
+Info:     at iteration #3, type ALL: wirelen solved = 453, spread = 3189, legal = 4736; time = 0.10s
+Info:     at iteration #4, type ICESTORM_LC: wirelen solved = 2108, spread = 3313, legal = 4120; time = 0.02s
+Info:     at iteration #4, type SB_GB: wirelen solved = 4024, spread = 4114, legal = 4115; time = 0.01s
+Info:     at iteration #4, type ICESTORM_RAM: wirelen solved = 3455, spread = 3832, legal = 4171; time = 0.01s
+Info:     at iteration #4, type ICESTORM_DSP: wirelen solved = 4102, spread = 4102, legal = 4171; time = 0.01s
+Info:     at iteration #4, type ALL: wirelen solved = 505, spread = 2781, legal = 4583; time = 0.19s
+Info:     at iteration #5, type ICESTORM_LC: wirelen solved = 2070, spread = 3070, legal = 4126; time = 0.02s
+Info:     at iteration #5, type SB_GB: wirelen solved = 4009, spread = 4112, legal = 4118; time = 0.01s
+Info:     at iteration #5, type ICESTORM_RAM: wirelen solved = 3281, spread = 3994, legal = 4157; time = 0.01s
+Info:     at iteration #5, type ICESTORM_DSP: wirelen solved = 4103, spread = 4103, legal = 4157; time = 0.01s
+Info:     at iteration #5, type ALL: wirelen solved = 495, spread = 2852, legal = 4337; time = 0.03s
+Info:     at iteration #6, type ICESTORM_LC: wirelen solved = 1942, spread = 3047, legal = 3701; time = 0.02s
+Info:     at iteration #6, type SB_GB: wirelen solved = 3614, spread = 3725, legal = 3731; time = 0.01s
+Info:     at iteration #6, type ICESTORM_RAM: wirelen solved = 3008, spread = 3695, legal = 3780; time = 0.01s
+Info:     at iteration #6, type ICESTORM_DSP: wirelen solved = 3713, spread = 3713, legal = 3780; time = 0.01s
+Info:     at iteration #6, type ALL: wirelen solved = 634, spread = 2629, legal = 4149; time = 0.03s
+Info:     at iteration #7, type ICESTORM_LC: wirelen solved = 2144, spread = 2872, legal = 3661; time = 0.02s
+Info:     at iteration #7, type SB_GB: wirelen solved = 3572, spread = 3670, legal = 3676; time = 0.01s
+Info:     at iteration #7, type ICESTORM_RAM: wirelen solved = 2826, spread = 3589, legal = 3726; time = 0.01s
+Info:     at iteration #7, type ICESTORM_DSP: wirelen solved = 3659, spread = 3659, legal = 3726; time = 0.01s
+Info:     at iteration #7, type ALL: wirelen solved = 677, spread = 2706, legal = 3977; time = 0.02s
+Info:     at iteration #8, type ICESTORM_LC: wirelen solved = 2078, spread = 3145, legal = 4064; time = 0.02s
+Info:     at iteration #8, type SB_GB: wirelen solved = 3971, spread = 4081, legal = 4087; time = 0.01s
+Info:     at iteration #8, type ICESTORM_RAM: wirelen solved = 3468, spread = 4086, legal = 4099; time = 0.01s
+Info:     at iteration #8, type ICESTORM_DSP: wirelen solved = 4011, spread = 4011, legal = 4168; time = 0.01s
+Info:     at iteration #8, type ALL: wirelen solved = 757, spread = 2830, legal = 3885; time = 0.02s
+Info:     at iteration #9, type ICESTORM_LC: wirelen solved = 2123, spread = 2893, legal = 3635; time = 0.02s
+Info:     at iteration #9, type SB_GB: wirelen solved = 3537, spread = 3628, legal = 3635; time = 0.01s
+Info:     at iteration #9, type ICESTORM_RAM: wirelen solved = 3022, spread = 3632, legal = 3703; time = 0.01s
+Info:     at iteration #9, type ICESTORM_DSP: wirelen solved = 3615, spread = 3615, legal = 3703; time = 0.01s
+Info:     at iteration #9, type ALL: wirelen solved = 775, spread = 2913, legal = 3808; time = 0.02s
+Info:     at iteration #10, type ICESTORM_LC: wirelen solved = 2109, spread = 2931, legal = 3887; time = 0.02s
+Info:     at iteration #10, type SB_GB: wirelen solved = 3785, spread = 3898, legal = 3900; time = 0.01s
+Info:     at iteration #10, type ICESTORM_RAM: wirelen solved = 3232, spread = 3995, legal = 3950; time = 0.01s
+Info:     at iteration #10, type ICESTORM_DSP: wirelen solved = 3889, spread = 3889, legal = 3950; time = 0.01s
+Info:     at iteration #10, type ALL: wirelen solved = 825, spread = 3065, legal = 3756; time = 0.02s
+Info:     at iteration #11, type ICESTORM_LC: wirelen solved = 2305, spread = 3053, legal = 3752; time = 0.02s
+Info:     at iteration #11, type SB_GB: wirelen solved = 3658, spread = 3774, legal = 3780; time = 0.01s
+Info:     at iteration #11, type ICESTORM_RAM: wirelen solved = 3088, spread = 3733, legal = 3812; time = 0.01s
+Info:     at iteration #11, type ICESTORM_DSP: wirelen solved = 3720, spread = 3720, legal = 3858; time = 0.01s
+Info:     at iteration #11, type ALL: wirelen solved = 858, spread = 2960, legal = 3848; time = 0.02s
+Info:     at iteration #12, type ICESTORM_LC: wirelen solved = 2184, spread = 3051, legal = 3616; time = 0.01s
+Info:     at iteration #12, type SB_GB: wirelen solved = 3515, spread = 3609, legal = 3616; time = 0.01s
+Info:     at iteration #12, type ICESTORM_RAM: wirelen solved = 2936, spread = 3601, legal = 3726; time = 0.01s
+Info:     at iteration #12, type ICESTORM_DSP: wirelen solved = 3638, spread = 3638, legal = 3726; time = 0.01s
+Info:     at iteration #12, type ALL: wirelen solved = 885, spread = 2881, legal = 3752; time = 0.02s
+Info:     at iteration #13, type ICESTORM_LC: wirelen solved = 2262, spread = 3024, legal = 3607; time = 0.02s
+Info:     at iteration #13, type SB_GB: wirelen solved = 3509, spread = 3600, legal = 3600; time = 0.01s
+Info:     at iteration #13, type ICESTORM_RAM: wirelen solved = 2735, spread = 3583, legal = 3602; time = 0.01s
+Info:     at iteration #13, type ICESTORM_DSP: wirelen solved = 3431, spread = 3431, legal = 3602; time = 0.01s
+Info:     at iteration #13, type ALL: wirelen solved = 947, spread = 2944, legal = 3628; time = 0.02s
+Info:     at iteration #14, type ICESTORM_LC: wirelen solved = 2235, spread = 3011, legal = 3744; time = 0.02s
+Info:     at iteration #14, type SB_GB: wirelen solved = 3651, spread = 3762, legal = 3769; time = 0.01s
+Info:     at iteration #14, type ICESTORM_RAM: wirelen solved = 2966, spread = 3750, legal = 3787; time = 0.01s
+Info:     at iteration #14, type ICESTORM_DSP: wirelen solved = 3697, spread = 3697, legal = 3787; time = 0.01s
+Info:     at iteration #14, type ALL: wirelen solved = 1034, spread = 2900, legal = 3816; time = 0.02s
+Info:     at iteration #15, type ICESTORM_LC: wirelen solved = 2265, spread = 3219, legal = 3773; time = 0.02s
+Info:     at iteration #15, type SB_GB: wirelen solved = 3685, spread = 3766, legal = 3766; time = 0.01s
+Info:     at iteration #15, type ICESTORM_RAM: wirelen solved = 3146, spread = 3779, legal = 3760; time = 0.01s
+Info:     at iteration #15, type ICESTORM_DSP: wirelen solved = 3571, spread = 3571, legal = 3760; time = 0.01s
+Info:     at iteration #15, type ALL: wirelen solved = 1053, spread = 2898, legal = 3779; time = 0.02s
+Info:     at iteration #16, type ICESTORM_LC: wirelen solved = 2378, spread = 3275, legal = 3743; time = 0.02s
+Info:     at iteration #16, type SB_GB: wirelen solved = 3664, spread = 3737, legal = 3743; time = 0.01s
+Info:     at iteration #16, type ICESTORM_RAM: wirelen solved = 2963, spread = 3712, legal = 3731; time = 0.01s
+Info:     at iteration #16, type ICESTORM_DSP: wirelen solved = 3627, spread = 3627, legal = 3731; time = 0.01s
+Info:     at iteration #16, type ALL: wirelen solved = 1075, spread = 2890, legal = 3874; time = 0.02s
+Info:     at iteration #17, type ICESTORM_LC: wirelen solved = 2337, spread = 3168, legal = 3826; time = 0.02s
+Info:     at iteration #17, type SB_GB: wirelen solved = 3734, spread = 3819, legal = 3819; time = 0.01s
+Info:     at iteration #17, type ICESTORM_RAM: wirelen solved = 3126, spread = 3858, legal = 3891; time = 0.01s
+Info:     at iteration #17, type ICESTORM_DSP: wirelen solved = 3788, spread = 3788, legal = 3891; time = 0.01s
+Info:     at iteration #17, type ALL: wirelen solved = 1025, spread = 2788, legal = 4144; time = 0.03s
+Info:     at iteration #18, type ICESTORM_LC: wirelen solved = 2497, spread = 3282, legal = 3766; time = 0.02s
+Info:     at iteration #18, type SB_GB: wirelen solved = 3672, spread = 3759, legal = 3766; time = 0.01s
+Info:     at iteration #18, type ICESTORM_RAM: wirelen solved = 2938, spread = 3684, legal = 3721; time = 0.01s
+Info:     at iteration #18, type ICESTORM_DSP: wirelen solved = 3612, spread = 3612, legal = 3755; time = 0.01s
+Info:     at iteration #18, type ALL: wirelen solved = 1127, spread = 3212, legal = 4114; time = 0.02s
+Info: HeAP Placer Time: 2.03s
+Info:   of which solving equations: 0.69s
+Info:   of which spreading cells: 0.09s
+Info:   of which strict legalisation: 1.13s
 
 Info: Running simulated annealing placer for refinement.
-Info:   at iteration #1: temp = 0.000000, timing cost = 183, wirelen = 3752
-Info:   at iteration #5: temp = 0.000000, timing cost = 154, wirelen = 3219
-Info:   at iteration #10: temp = 0.000000, timing cost = 260, wirelen = 3095
-Info:   at iteration #15: temp = 0.000000, timing cost = 284, wirelen = 3027
-Info:   at iteration #17: temp = 0.000000, timing cost = 183, wirelen = 3010 
-Info: SA placement time 0.41s
+Info:   at iteration #1: temp = 0.000000, timing cost = 192, wirelen = 3628
+Info:   at iteration #5: temp = 0.000000, timing cost = 215, wirelen = 2983
+Info:   at iteration #10: temp = 0.000000, timing cost = 180, wirelen = 2888
+Info:   at iteration #15: temp = 0.000000, timing cost = 181, wirelen = 2834
+Info:   at iteration #17: temp = 0.000000, timing cost = 143, wirelen = 2817 
+Info: SA placement time 0.39s
 
-Info: Max frequency for clock          'clk_slow': 37.80 MHz (PASS at 13.00 MHz)
-Info: Max frequency for clock 'clk_fast_$glb_clk': 91.01 MHz (PASS at 85.00 MHz)
+Info: Max frequency for clock          'clk_slow': 39.40 MHz (PASS at 13.00 MHz)
+Info: Max frequency for clock 'clk_fast_$glb_clk': 74.98 MHz (FAIL at 85.00 MHz)
 
 Info: Clock '$PACKER_GND_NET_$glb_clk' has no interior paths
 
-Info: Max delay <async>                   -> posedge clk_slow         : 4.41 ns
-Info: Max delay posedge clk_fast_$glb_clk -> <async>                  : 5.61 ns
-Info: Max delay posedge clk_fast_$glb_clk -> posedge clk_slow         : 25.91 ns
-Info: Max delay posedge clk_slow          -> <async>                  : 7.82 ns
-Info: Max delay posedge clk_slow          -> posedge clk_fast_$glb_clk: 5.53 ns
+Info: Max delay <async>                   -> posedge clk_slow         : 4.80 ns
+Info: Max delay posedge clk_fast_$glb_clk -> <async>                  : 4.82 ns
+Info: Max delay posedge clk_fast_$glb_clk -> posedge clk_slow         : 21.37 ns
+Info: Max delay posedge clk_slow          -> <async>                  : 7.95 ns
+Info: Max delay posedge clk_slow          -> posedge clk_fast_$glb_clk: 5.80 ns
 
 Info: Slack histogram:
-Info:  legend: * represents 9 endpoint(s)
-Info:          + represents [1,9) endpoint(s)
-Info: [   776,   4415) |**********+
-Info: [  4415,   8054) |**********************+
-Info: [  8054,  11693) | 
-Info: [ 11693,  15332) | 
-Info: [ 15332,  18971) | 
-Info: [ 18971,  22610) | 
-Info: [ 22610,  26249) | 
-Info: [ 26249,  29888) | 
-Info: [ 29888,  33527) | 
-Info: [ 33527,  37166) | 
-Info: [ 37166,  40805) | 
-Info: [ 40805,  44444) | 
-Info: [ 44444,  48083) | 
-Info: [ 48083,  51722) |+
-Info: [ 51722,  55361) |*********+
-Info: [ 55361,  59000) |******+
-Info: [ 59000,  62639) |****+
-Info: [ 62639,  66278) |******+
-Info: [ 66278,  69917) |********************+
-Info: [ 69917,  73556) |************************************************************ 
-Info: Checksum: 0x35331d95
+Info:  legend: * represents 11 endpoint(s)
+Info:          + represents [1,11) endpoint(s)
+Info: [ -1573,   2158) |*******+
+Info: [  2158,   5889) |*******+
+Info: [  5889,   9620) |**************+
+Info: [  9620,  13351) | 
+Info: [ 13351,  17082) | 
+Info: [ 17082,  20813) | 
+Info: [ 20813,  24544) | 
+Info: [ 24544,  28275) | 
+Info: [ 28275,  32006) | 
+Info: [ 32006,  35737) | 
+Info: [ 35737,  39468) | 
+Info: [ 39468,  43199) | 
+Info: [ 43199,  46930) | 
+Info: [ 46930,  50661) | 
+Info: [ 50661,  54392) |***+
+Info: [ 54392,  58123) |*******+
+Info: [ 58123,  61854) |******+
+Info: [ 61854,  65585) |******+
+Info: [ 65585,  69316) |*************+
+Info: [ 69316,  73047) |************************************************************ 
+Info: Checksum: 0xd7924891
 
 Info: Routing..
 Info: Setting up routing queue.
-Info: Routing 2455 arcs.
+Info: Routing 2426 arcs.
 Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
 Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
-Info:       1000 |       51        858 |   51   858 |      1511|       0.22       0.22|
-Info:       2000 |      148       1674 |   97   816 |       644|       0.13       0.36|
-Info:       2676 |      179       2317 |   31   643 |         0|       0.38       0.74|
+Info:       1000 |       62        840 |   62   840 |      1493|       0.22       0.22|
+Info:       2000 |      163       1656 |  101   816 |       619|       0.15       0.37|
+Info:       2677 |      215       2282 |   52   626 |         0|       0.37       0.74|
 Info: Routing complete.
 Info: Router1 time 0.74s
-Info: Checksum: 0x49544d0b
+Info: Checksum: 0x71bf1a32
 
 Info: Critical path report for clock 'clk_slow' (posedge -> posedge):
 Info:       type curr  total name
 Info:   clk-to-q  1.39  1.39 Source u_tdm.mult_b_SB_DFFER_Q_7_DFFLC.O
-Info:    routing  2.95  4.34 Net u_tdm.amp_offset[15] (2,23) -> (4,19)
-Info:                          Sink u_tdm.rounded_duty_minus_SB_LUT4_O_2_I1_SB_LUT4_O_I2_SB_LUT4_O_LC.I3
+Info:    routing  1.76  3.15 Net u_tdm.amp_offset[15] (5,17) -> (5,16)
+Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_I2_SB_LUT4_O_LC.I3
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:74.17-74.23
-Info:      logic  0.87  5.22 Source u_tdm.rounded_duty_minus_SB_LUT4_O_2_I1_SB_LUT4_O_I2_SB_LUT4_O_LC.O
-Info:    routing  1.76  6.98 Net u_tdm.rounded_duty_minus_SB_LUT4_O_2_I1_SB_LUT4_O_I2[2] (4,19) -> (4,18)
-Info:                          Sink u_tdm.rounded_duty_minus_SB_LUT4_O_2_I1_SB_LUT4_O_LC.I2
+Info:      logic  0.87  4.03 Source u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_I2_SB_LUT4_O_LC.O
+Info:    routing  1.76  5.79 Net u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_I2[2] (5,16) -> (4,16)
+Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_LC.I2
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      logic  0.61  7.59 Source u_tdm.rounded_duty_minus_SB_LUT4_O_2_I1_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  7.59 Net u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
-Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_LC.CIN
+Info:      logic  0.61  6.39 Source u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  6.39 Net u_tdm.rounded_duty_minus_SB_LUT4_O_I1_SB_LUT4_O_I2[3] (4,16) -> (4,16)
+Info:                          Sink u_tdm.rounded_duty_minus_SB_LUT4_O_I1_SB_LUT4_O_LC.CIN
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  7.86 Source u_tdm.rounded_duty_plus_SB_LUT4_O_I2_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  7.86 Net u_tdm.rounded_duty_plus_SB_LUT4_O_1_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
-Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_1_I2_SB_LUT4_O_LC.CIN
-Info:                          Defined in:
-Info:                               src/spwm_tdm.v:91.32-91.70
-Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
-Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  8.14 Source u_tdm.rounded_duty_plus_SB_LUT4_O_1_I2_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  8.14 Net u_tdm.rounded_duty_plus_SB_LUT4_O_2_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
+Info:      logic  0.28  6.67 Source u_tdm.rounded_duty_minus_SB_LUT4_O_I1_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  6.67 Net u_tdm.rounded_duty_plus_SB_LUT4_O_2_I2_SB_LUT4_O_I2[3] (4,16) -> (4,16)
 Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_2_I2_SB_LUT4_O_LC.CIN
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  8.42 Source u_tdm.rounded_duty_plus_SB_LUT4_O_2_I2_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  8.42 Net u_tdm.rounded_duty_plus_SB_LUT4_O_3_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
+Info:      logic  0.28  6.95 Source u_tdm.rounded_duty_plus_SB_LUT4_O_2_I2_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  6.95 Net u_tdm.rounded_duty_plus_SB_LUT4_O_3_I2_SB_LUT4_O_I2[3] (4,16) -> (4,16)
 Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_3_I2_SB_LUT4_O_LC.CIN
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  8.70 Source u_tdm.rounded_duty_plus_SB_LUT4_O_3_I2_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  8.70 Net u_tdm.rounded_duty_plus_SB_LUT4_O_4_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
+Info:      logic  0.28  7.23 Source u_tdm.rounded_duty_plus_SB_LUT4_O_3_I2_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  7.23 Net u_tdm.rounded_duty_plus_SB_LUT4_O_4_I2_SB_LUT4_O_I2[3] (4,16) -> (4,16)
 Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_4_I2_SB_LUT4_O_LC.CIN
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  8.98 Source u_tdm.rounded_duty_plus_SB_LUT4_O_4_I2_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  8.98 Net u_tdm.rounded_duty_plus_SB_LUT4_O_5_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
+Info:      logic  0.28  7.51 Source u_tdm.rounded_duty_plus_SB_LUT4_O_4_I2_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  7.51 Net u_tdm.rounded_duty_plus_SB_LUT4_O_5_I2_SB_LUT4_O_I2[3] (4,16) -> (4,16)
 Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_5_I2_SB_LUT4_O_LC.CIN
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  9.25 Source u_tdm.rounded_duty_plus_SB_LUT4_O_5_I2_SB_LUT4_O_LC.COUT
-Info:    routing  0.00  9.25 Net u_tdm.rounded_duty_plus_SB_LUT4_O_6_I2_SB_LUT4_O_I2[3] (4,18) -> (4,18)
+Info:      logic  0.28  7.78 Source u_tdm.rounded_duty_plus_SB_LUT4_O_5_I2_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  7.78 Net u_tdm.rounded_duty_plus_SB_LUT4_O_6_I2_SB_LUT4_O_I2[3] (4,16) -> (4,16)
 Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_6_I2_SB_LUT4_O_LC.CIN
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  9.53 Source u_tdm.rounded_duty_plus_SB_LUT4_O_6_I2_SB_LUT4_O_LC.COUT
-Info:    routing  1.22  10.75 Net u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2_SB_LUT4_O_I3 (4,18) -> (4,19)
+Info:      logic  0.28  8.06 Source u_tdm.rounded_duty_plus_SB_LUT4_O_6_I2_SB_LUT4_O_LC.COUT
+Info:    routing  0.00  8.06 Net u_tdm.rounded_duty_plus_SB_LUT4_O_7_I2_SB_LUT4_O_I2[3] (4,16) -> (4,16)
+Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_7_I2_SB_LUT4_O_LC.CIN
+Info:                          Defined in:
+Info:                               src/spwm_tdm.v:91.32-91.70
+Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
+Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
+Info:      logic  0.28  8.34 Source u_tdm.rounded_duty_plus_SB_LUT4_O_7_I2_SB_LUT4_O_LC.COUT
+Info:    routing  1.22  9.56 Net u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2_SB_LUT4_O_I3 (4,16) -> (4,17)
 Info:                          Sink u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2_SB_LUT4_O_LC.I3
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:91.32-91.70
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.87  11.62 Source u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2_SB_LUT4_O_LC.O
-Info:    routing  2.41  14.03 Net u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2[1] (4,19) -> (4,17)
+Info:      logic  0.87  10.43 Source u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2_SB_LUT4_O_LC.O
+Info:    routing  2.95  13.39 Net u_tdm.rounded_duty_plus_SB_LUT4_O_9_I2[1] (4,17) -> (7,14)
 Info:                          Sink u_tdm.rounded_duty_minus_SB_LUT4_O_3_LC.I1
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:95.39-95.68
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      logic  0.68  14.71 Source u_tdm.rounded_duty_minus_SB_LUT4_O_3_LC.COUT
-Info:    routing  0.66  15.37 Net $nextpnr_ICESTORM_LC_2$I3 (4,17) -> (4,17)
-Info:                          Sink $nextpnr_ICESTORM_LC_2.I3
-Info:      logic  0.87  16.24 Source $nextpnr_ICESTORM_LC_2.O
-Info:    routing  1.76  18.00 Net u_tdm.rounded_duty_minus_SB_LUT4_O_2_I1[0] (4,17) -> (4,17)
-Info:                          Sink u_tdm.rounded_duty_minus_SB_LUT4_O_1_LC.I0
+Info:      logic  0.68  14.06 Source u_tdm.rounded_duty_minus_SB_LUT4_O_3_LC.COUT
+Info:    routing  0.66  14.72 Net $nextpnr_ICESTORM_LC_4$I3 (7,14) -> (7,14)
+Info:                          Sink $nextpnr_ICESTORM_LC_4.I3
+Info:      logic  0.87  15.60 Source $nextpnr_ICESTORM_LC_4.O
+Info:    routing  1.76  17.36 Net u_tdm.rounded_duty_minus_SB_LUT4_O_3_I3_SB_CARRY_CI_CO (7,14) -> (7,13)
+Info:                          Sink u_tdm.rounded_duty_minus_SB_LUT4_O_9_LC.I0
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:95.39-95.68
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      logic  1.28  19.29 Source u_tdm.rounded_duty_minus_SB_LUT4_O_1_LC.O
-Info:    routing  3.70  22.99 Net u_tdm.rounded_duty_minus[9] (4,17) -> (3,26)
-Info:                          Sink u_tdm.v_minus_SB_DFFER_Q_1_DFFLC.I0
+Info:      logic  1.28  18.64 Source u_tdm.rounded_duty_minus_SB_LUT4_O_9_LC.O
+Info:    routing  3.60  22.24 Net u_tdm.rounded_duty_minus[5] (7,13) -> (10,8)
+Info:                          Sink u_tdm.u_minus_SB_DFFER_Q_3_DFFLC.I0
 Info:                          Defined in:
 Info:                               src/spwm_tdm.v:94.14-94.32
-Info:      setup  1.23  24.23 Source u_tdm.v_minus_SB_DFFER_Q_1_DFFLC.I0
-Info: 9.76 ns logic, 14.47 ns routing
+Info:      setup  1.23  23.48 Source u_tdm.u_minus_SB_DFFER_Q_3_DFFLC.I0
+Info: 9.76 ns logic, 13.72 ns routing
 
 Info: Critical path report for clock 'clk_fast_$glb_clk' (posedge -> posedge):
 Info:       type curr  total name
-Info:   clk-to-q  1.39  1.39 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_DFFER_Q_DFFLC.O
-Info:    routing  3.70  5.09 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_I1_SB_LUT4_O_I3 (5,21) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.I3
+Info:   clk-to-q  1.39  1.39 Source gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_I2_SB_LUT4_O_I3_SB_DFFER_Q_DFFLC.O
+Info:    routing  2.95  4.34 Net gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_I2_SB_LUT4_O_I3 (7,14) -> (5,13)
+Info:                          Sink gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_I2_SB_LUT4_O_LC.I3
 Info:                          Defined in:
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      logic  0.87  5.97 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.O
-Info:    routing  1.76  7.73 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_I1 (5,11) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.I2
-Info:      logic  0.61  8.34 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.COUT
-Info:    routing  0.00  8.34 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI (5,11) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.CIN
+Info:      logic  0.87  5.22 Source gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_I2_SB_LUT4_O_LC.O
+Info:    routing  1.76  6.98 Net gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_I2[2] (5,13) -> (5,12)
+Info:                          Sink gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_LC.I2
 Info:                          Defined in:
-Info:                               src/pwm_phase_correct_brams.v:232.31-232.58
+Info:                               src/pwm_phase_correct.v:223.31-223.58
 Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
-Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  8.62 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.COUT
-Info:    routing  0.00  8.62 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO_CI (5,11) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.CIN
-Info:                          Defined in:
-Info:                               src/pwm_phase_correct_brams.v:232.31-232.58
-Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
-Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  8.90 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.COUT
-Info:    routing  0.00  8.90 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_CI (5,11) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.CIN
-Info:                          Defined in:
-Info:                               src/pwm_phase_correct_brams.v:232.31-232.58
-Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
-Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  9.17 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO$CARRY.COUT
-Info:    routing  0.00  9.17 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO_CI (5,11) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO$CARRY.CIN
-Info:                          Defined in:
-Info:                               src/pwm_phase_correct_brams.v:232.31-232.58
-Info:                               /usr/local/bin/../share/yosys/ice40/arith_map.v:62.5-70.4
-Info:                               /usr/local/bin/../share/yosys/ice40/abc9_model.v:4.9-4.11
-Info:      logic  0.28  9.45 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3_SB_CARRY_CO$CARRY.COUT
-Info:    routing  0.66  10.11 Net u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_I3 (5,11) -> (5,11)
-Info:                          Sink u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_LC.I3
+Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
+Info:      logic  1.21  8.18 Source gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_1_LC.O
+Info:    routing  1.76  9.94 Net gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O[0] (5,12) -> (5,12)
+Info:                          Sink gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_1_D_SB_LUT4_O_LC.I1
 Info:                          Defined in:
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      setup  0.82  10.94 Source u_pwm.s2w_lt_dmh_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_2_D_SB_LUT4_O_LC.I3
-Info: 4.81 ns logic, 6.13 ns routing
+Info:      setup  1.18  11.12 Source gate_ul_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_1_D_SB_LUT4_O_LC.I1
+Info: 4.65 ns logic, 6.47 ns routing
 
 Info: Critical path report for cross-domain path '<async>' -> 'posedge clk_slow':
 Info:       type curr  total name
 Info:     source  0.00  0.00 Source uart_rx$sb_io.D_IN_0
-Info:    routing  3.06  3.06 Net uart_rx$SB_IO_IN (9,0) -> (9,6)
+Info:    routing  3.60  3.60 Net uart_rx$SB_IO_IN (9,0) -> (4,4)
 Info:                          Sink u_uart.rx_sync1_SB_DFFS_Q_DFFLC.I0
 Info:                          Defined in:
 Info:                               src/top.v:30.23-30.30
-Info:      setup  1.23  4.29 Source u_uart.rx_sync1_SB_DFFS_Q_DFFLC.I0
-Info: 1.23 ns logic, 3.06 ns routing
+Info:      setup  1.23  4.83 Source u_uart.rx_sync1_SB_DFFS_Q_DFFLC.I0
+Info: 1.23 ns logic, 3.60 ns routing
 
 Info: Critical path report for cross-domain path 'posedge clk_fast_$glb_clk' -> '<async>':
 Info:       type curr  total name
-Info:   clk-to-q  1.39  1.39 Source gate_wl_SB_DFFR_Q_D_SB_LUT4_O_LC.O
-Info:    routing  4.35  5.74 Net gate[0]$SB_IO_OUT (5,14) -> (5,0)
-Info:                          Sink gate[0]$sb_io.D_OUT_0
+Info:   clk-to-q  1.39  1.39 Source gate_ul_SB_DFFR_Q_D_SB_LUT4_O_LC.O
+Info:    routing  4.35  5.74 Net gate[4]$SB_IO_OUT (7,17) -> (8,31)
+Info:                          Sink gate[4]$sb_io.D_OUT_0
 Info:                          Defined in:
-Info:                               src/pwm_phase_correct_brams.v:39.24-39.31
+Info:                               src/pwm_phase_correct.v:42.24-42.31
 Info: 1.39 ns logic, 4.35 ns routing
 
 Info: Critical path report for cross-domain path 'posedge clk_fast_$glb_clk' -> 'posedge clk_slow':
 Info:       type curr  total name
 Info:   clk-to-q  1.39  1.39 Source pwm_sync_pipe_SB_DFFR_D_DFFLC.O
-Info:    routing  1.76  3.15 Net pwm_sync_pipe_SB_DFFR_D_Q[0] (4,25) -> (4,25)
+Info:    routing  1.76  3.15 Net pwm_sync_pipe_SB_DFFR_D_Q[0] (3,18) -> (3,19)
 Info:                          Sink pwm_sync_pipe_SB_LUT4_I2_LC.I0
 Info:                          Defined in:
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
 Info:      logic  1.28  4.43 Source pwm_sync_pipe_SB_LUT4_I2_LC.O
-Info:    routing  3.60  8.03 Net pll_locked_SB_LUT4_I1_1_I2[2] (4,25) -> (1,30)
-Info:                          Sink pll_locked_SB_LUT4_I1_1_LC.I3
+Info:    routing  1.76  6.20 Net pll_locked_SB_LUT4_I1_1_I2[2] (3,19) -> (3,18)
+Info:                          Sink pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_LC.I3
 Info:                          Defined in:
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      logic  0.87  8.91 Source pll_locked_SB_LUT4_I1_1_LC.O
-Info:    routing  7.48  16.39 Net pll_locked_SB_LUT4_I1_1_O (1,30) -> (19,0)
-Info:                          Sink $gbuf_pll_locked_SB_LUT4_I1_1_O_$glb_ce.USER_SIGNAL_TO_GLOBAL_BUFFER
-Info:      logic  1.59  17.98 Source $gbuf_pll_locked_SB_LUT4_I1_1_O_$glb_ce.GLOBAL_BUFFER_OUTPUT
-Info:    routing  0.70  18.68 Net pll_locked_SB_LUT4_I1_1_O_$glb_ce (19,0) -> (1,19)
-Info:                          Sink u_cmd.phase_inc_SB_DFFE_Q_1_DFFLC.CEN
-Info:      setup  0.10  18.78 Source u_cmd.phase_inc_SB_DFFE_Q_1_DFFLC.CEN
-Info: 5.24 ns logic, 13.54 ns routing
+Info:      logic  0.87  7.07 Source pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_LC.O
+Info:    routing  6.51  13.58 Net pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_O (3,18) -> (19,0)
+Info:                          Sink $gbuf_pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_O_$glb_ce.USER_SIGNAL_TO_GLOBAL_BUFFER
+Info:                          Defined in:
+Info:                               src/spwm_tdm.v:102.5-193.8
+Info:                               /usr/local/bin/../share/yosys/ice40/ff_map.v:14.63-14.116
+Info:                               /usr/local/bin/../share/yosys/ice40/cells_sim.v:656.8-656.9
+Info:      logic  1.59  15.17 Source $gbuf_pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_O_$glb_ce.GLOBAL_BUFFER_OUTPUT
+Info:    routing  0.70  15.87 Net pwm_sync_pipe_SB_LUT4_I2_O_SB_LUT4_I3_O_$glb_ce (19,0) -> (1,11)
+Info:                          Sink u_lut.mem.0.6_RADDR_SB_DFFER_Q_D_SB_LUT4_O_6_I2_SB_LUT4_I2_LC.CEN
+Info:      setup  0.10  15.97 Source u_lut.mem.0.6_RADDR_SB_DFFER_Q_D_SB_LUT4_O_6_I2_SB_LUT4_I2_LC.CEN
+Info: 5.24 ns logic, 10.73 ns routing
 
 Info: Critical path report for cross-domain path 'posedge clk_slow' -> '<async>':
 Info:       type curr  total name
 Info:   clk-to-q  1.39  1.39 Source u_dbg.tx_ready_SB_DFFS_D_Q_SB_LUT4_O_I3_SB_DFFER_Q_E_SB_DFFR_D_Q_SB_LUT4_I2_O_SB_LUT4_I2_1_LC.O
-Info:    routing  2.95  4.34 Net uart_tx_SB_LUT4_O_I2[1] (9,2) -> (11,1)
+Info:    routing  2.41  3.80 Net uart_tx_SB_LUT4_O_I2[1] (9,3) -> (10,1)
 Info:                          Sink uart_tx_SB_LUT4_O_LC.I3
 Info:                          Defined in:
 Info:                               /usr/local/bin/../share/yosys/ice40/cells_map.v:6.21-6.22
-Info:      logic  0.87  5.22 Source uart_tx_SB_LUT4_O_LC.O
-Info:    routing  3.06  8.27 Net uart_tx$SB_IO_OUT (11,1) -> (13,0)
+Info:      logic  0.87  4.67 Source uart_tx_SB_LUT4_O_LC.O
+Info:    routing  3.06  7.73 Net uart_tx$SB_IO_OUT (10,1) -> (13,0)
 Info:                          Sink uart_tx$sb_io.D_OUT_0
 Info:                          Defined in:
 Info:                               src/top.v:31.23-31.30
-Info: 2.26 ns logic, 6.01 ns routing
+Info: 2.26 ns logic, 5.47 ns routing
 
 Info: Critical path report for cross-domain path 'posedge clk_slow' -> 'posedge clk_fast_$glb_clk':
 Info:       type curr  total name
-Info:   clk-to-q  1.39  1.39 Source u_tdm.w_plus_SB_DFFER_Q_2_DFFLC.O
-Info:    routing  2.85  4.24 Net w_plus[9] (4,22) -> (8,22)
-Info:                          Sink gate_wl_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_DFFER_Q_DFFLC.I0
+Info:   clk-to-q  1.39  1.39 Source u_tdm.w_plus_SB_DFFER_Q_3_DFFLC.O
+Info:    routing  3.49  4.89 Net w_plus[8] (3,12) -> (8,13)
+Info:                          Sink gate_wl_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_I2_SB_DFFER_Q_DFFLC.I0
 Info:                          Defined in:
 Info:                               src/top.v:117.35-117.41
-Info:      setup  1.23  5.47 Source gate_wl_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_CI_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_DFFER_Q_DFFLC.I0
-Info: 2.62 ns logic, 2.85 ns routing
+Info:      setup  1.23  6.12 Source gate_wl_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_DFFR_Q_D_SB_LUT4_O_I3_SB_CARRY_CO_I1_SB_LUT4_O_I3_SB_LUT4_I2_O_SB_LUT4_O_I2_SB_DFFER_Q_DFFLC.I0
+Info: 2.62 ns logic, 3.49 ns routing
 
-Info: Max frequency for clock          'clk_slow': 41.27 MHz (PASS at 13.00 MHz)
-Info: Max frequency for clock 'clk_fast_$glb_clk': 91.43 MHz (PASS at 85.00 MHz)
+Info: Max frequency for clock          'clk_slow': 42.60 MHz (PASS at 13.00 MHz)
+Info: Max frequency for clock 'clk_fast_$glb_clk': 89.90 MHz (PASS at 85.00 MHz)
 
 Info: Clock '$PACKER_GND_NET_$glb_clk' has no interior paths
 
-Info: Max delay <async>                   -> posedge clk_slow         : 4.29 ns
+Info: Max delay <async>                   -> posedge clk_slow         : 4.83 ns
 Info: Max delay posedge clk_fast_$glb_clk -> <async>                  : 5.74 ns
-Info: Max delay posedge clk_fast_$glb_clk -> posedge clk_slow         : 18.78 ns
-Info: Max delay posedge clk_slow          -> <async>                  : 8.27 ns
-Info: Max delay posedge clk_slow          -> posedge clk_fast_$glb_clk: 5.47 ns
+Info: Max delay posedge clk_fast_$glb_clk -> posedge clk_slow         : 15.97 ns
+Info: Max delay posedge clk_slow          -> <async>                  : 7.73 ns
+Info: Max delay posedge clk_slow          -> posedge clk_fast_$glb_clk: 6.12 ns
 
 Info: Slack histogram:
 Info:  legend: * represents 10 endpoint(s)
 Info:          + represents [1,10) endpoint(s)
-Info: [   827,   4441) |***+
-Info: [  4441,   8055) |***************************+
-Info: [  8055,  11669) | 
-Info: [ 11669,  15283) | 
-Info: [ 15283,  18897) | 
-Info: [ 18897,  22511) | 
-Info: [ 22511,  26125) | 
-Info: [ 26125,  29739) | 
-Info: [ 29739,  33353) | 
-Info: [ 33353,  36967) | 
-Info: [ 36967,  40581) | 
-Info: [ 40581,  44195) | 
-Info: [ 44195,  47809) | 
-Info: [ 47809,  51423) | 
-Info: [ 51423,  55037) |***+
-Info: [ 55037,  58651) |*****+
-Info: [ 58651,  62265) |********+
-Info: [ 62265,  65879) |**********+
-Info: [ 65879,  69493) |**************+
-Info: [ 69493,  73107) |************************************************************ 
+Info: [   640,   4265) |**********+
+Info: [  4265,   7890) |********************+
+Info: [  7890,  11515) | 
+Info: [ 11515,  15140) | 
+Info: [ 15140,  18765) | 
+Info: [ 18765,  22390) | 
+Info: [ 22390,  26015) | 
+Info: [ 26015,  29640) | 
+Info: [ 29640,  33265) | 
+Info: [ 33265,  36890) | 
+Info: [ 36890,  40515) | 
+Info: [ 40515,  44140) | 
+Info: [ 44140,  47765) | 
+Info: [ 47765,  51390) | 
+Info: [ 51390,  55015) |***+
+Info: [ 55015,  58640) |*****+
+Info: [ 58640,  62265) |*****+
+Info: [ 62265,  65890) |*************+
+Info: [ 65890,  69515) |*************+
+Info: [ 69515,  73140) |************************************************************ 
 
 Info: Program finished normally.

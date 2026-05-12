@@ -1,28 +1,36 @@
 // Phase-Correct PWM + 3-Channel Dead-Time Gate Generator
-// Pipelined variant — single triangle counter formed by a registered
-// mux of address halves at the counter stage. Both halves of the
-// triangle share thresholds, so only one comparator lane per phase is
-// needed (mirroring the brams variant's structure).
+//
+// Variant selected at synthesis time via -DVARIANT_*:
+//
+//   VARIANT_PIPE   — Free-running 12-bit addr; counter is the registered
+//                    mux of addr[10:0] vs ~addr[10:0].
+//   VARIANT_TWIN   — Independent inc/dec counters with internal direction
+//                    tracking; counter is the registered mux of them. No
+//                    addr counter / no shared up/down adder.
+//   VARIANT_BRAMS  — Triangle counter (and sync flag) materialized in a
+//                    4096-entry BRAM lookup table.
+//
+// All variants share the duty-at-sync latch, the comparator pipeline
+// (s1 → s2 → gate FF), and the gate outputs. They differ only in how
+// `counter` and `sync` are generated.
 //
 // Symmetric dead-time, centered on the duty boundary:
 //
 //   gate_high = (counter <  duty - dt/2)
-//   gate_low  = (counter >= duty + dt/2)   = ~(counter < duty + dt/2)
+//   gate_low  = (counter >= duty + dt/2) = ~(counter < duty + dt/2)
 //
-// Duty thresholds are latched at sync (trough) so they remain stable
-// across the entire PWM period regardless of when spwm_tdm finishes.
+// Both halves of the triangle share thresholds, so one comparator lane
+// per phase is sufficient.
 //
-// Pipeline depth addr -> gate FF: 4 stages
-//   addr -> counter_reg -> s1 -> s2 -> gate
+// duty_minus is 11-bit. duty_plus is 12-bit: bit 11 is a "force off"
+// sentinel OR'd directly into the s2 reduction, so gate_low can be fully
+// suppressed at the sine peak without widening the 11-bit comparators.
 //
-// Companion modules: pwm_phase_correct_twin, pwm_phase_correct_brams.
+// Pipeline depth (source register → gate FF): 4 stages.
 
-module pwm_phase_correct_pipelined(
+module pwm_phase_correct(
     input  wire        clk,
     input  wire        rst_n,
-    // Direct duty inputs from slow domain (pre-saturated duty±dt/2).
-    // *_minus is 11-bit (0..2047, "never on" at 0).
-    // *_plus is 12-bit (0..2048, "never on" at 2048).
     input  wire [10:0] duty_u_minus_dt_half,
     input  wire [11:0] duty_u_plus_dt_half,
     input  wire [10:0] duty_v_minus_dt_half,
@@ -68,53 +76,115 @@ module pwm_phase_correct_pipelined(
     end
 
     // ============================================================
-    // Free-running 12-bit address counter.
+    // Variant-specific triangle counter + sync generation.
+    // Each block drives `wire [10:0] counter` and `reg sync`.
     // ============================================================
-    reg [11:0] addr;
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)  addr <= 12'd0;
-        else         addr <= addr + 12'd1;
-    end
-
-    // ============================================================
-    // Single triangle counter — registered mux of address halves.
+`ifdef VARIANT_PIPE
+    // Free-running 12-bit addr → registered mux of address halves.
     //   UP half   (addr[11]=0): counter = addr[10:0]   = 0..2047
     //   DOWN half (addr[11]=1): counter = ~addr[10:0]  = 2047..0
-    // Triangle sequence: 0,1,...,2047,2047,2046,...,1,0,0,1,...
-    // ============================================================
-    reg [10:0] counter_reg;
-
+    reg [11:0] addr;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)  counter_reg <= 11'd0;
-        else         counter_reg <= addr[11] ? ~addr[10:0] : addr[10:0];
+        if (!rst_n) addr <= 12'd0;
+        else        addr <= addr + 12'd1;
+    end
+
+    reg [10:0] counter_reg;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) counter_reg <= 11'd0;
+        else        counter_reg <= addr[11] ? ~addr[10:0] : addr[10:0];
     end
 
     wire [10:0] counter = counter_reg;
 
-    // ============================================================
-    // sync: two-stage register pipeline matching twin's structure.
-    // sync_pre registers (addr == 0); sync is one cycle later, so it
-    // fires the cycle after counter_reg hits the trough — which is when
-    // the duty-latch picks up the new period's thresholds.
-    // ============================================================
+    // Two-stage sync to align with counter_reg's pipeline depth.
     reg sync_pre;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) sync_pre <= 1'b0;
         else        sync_pre <= (addr == 12'd0);
     end
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) sync <= 1'b0;
         else        sync <= sync_pre;
     end
 
+`elsif VARIANT_TWIN
+    // Independent up/down counters + internal direction tracking.
+    // Invariant: counter_up_reg + counter_down_reg ≡ 2047 (mod 2048).
+    reg [10:0] counter_up_reg;
+    reg [10:0] counter_down_reg;
+    reg        dir;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            counter_up_reg   <= 11'd0;
+            counter_down_reg <= 11'd2047;
+            dir              <= 1'b0;
+        end else begin
+            counter_up_reg   <= counter_up_reg   + 11'd1;
+            counter_down_reg <= counter_down_reg - 11'd1;
+            if (counter_up_reg == 11'd2047) dir <= ~dir;
+        end
+    end
+
+    reg [10:0] counter_reg;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) counter_reg <= 11'd0;
+        else        counter_reg <= dir ? counter_down_reg : counter_up_reg;
+    end
+
+    wire [10:0] counter = counter_reg;
+
+    // Two-stage sync; trough = counter_up_reg == 0 with dir == 0.
+    reg sync_pre;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) sync_pre <= 1'b0;
+        else        sync_pre <= (counter_up_reg == 11'd0) && !dir;
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) sync <= 1'b0;
+        else        sync <= sync_pre;
+    end
+
+`elsif VARIANT_BRAMS
+    // BRAM-materialized triangle table. data[10:0] = counter value,
+    // data[11] = sync (high at addr 0). 4096 × 12 bits.
+    reg [11:0] addr;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) addr <= 12'd0;
+        else        addr <= addr + 12'd1;
+    end
+
+    reg [11:0] table_data [0:4095];
+    initial $readmemh("src/counter_table.hex", table_data);
+
+    reg [11:0] rom_out;           // BRAM read latch (yosys absorbs into BRAM)
+    always @(posedge clk) rom_out <= table_data[addr];
+
+    (* keep *) reg [11:0] rom_out_pipe;   // fabric pipeline between BRAM and consumers
+    always @(posedge clk) rom_out_pipe <= rom_out;
+
+    wire [10:0] counter  = rom_out_pipe[10:0];
+    wire        rom_sync = rom_out_pipe[11];
+
+    // One extra register stage to match the other variants' sync depth.
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) sync <= 1'b0;
+        else        sync <= rom_sync;
+    end
+
+`else
+    initial begin
+        $display("ERROR: pwm_phase_correct: no VARIANT_* define passed.");
+        $display("       Use -DVARIANT_PIPE / -DVARIANT_TWIN / -DVARIANT_BRAMS.");
+        $finish;
+    end
+`endif
+
     // ============================================================
-    // Counter / duty splits.
+    // Counter / duty splits (shared across variants).
     //   Both duty_minus and the LOW 11 bits of duty_plus split 5 hi + 6 lo,
     //   so the s1 comparators are identical-sized between dmh and dph.
-    //   The 12th bit of duty_plus is a "force off" sentinel and is OR'd
-    //   directly into the s2 reduction (see Phase U/V/W blocks below).
+    //   Bit 11 of duty_plus is the "force off" sentinel, OR'd into s2.
     // ============================================================
     wire [4:0] counter_hi = counter[10:6];
     wire [5:0] counter_lo = counter[5:0];
@@ -136,15 +206,12 @@ module pwm_phase_correct_pipelined(
 
     // ============================================================
     // Phase U pipelined dead-time
-    //   stage 1: hi-lt + hi-eq + lo-lt for two RHSs (dmh, dph)
-    //   stage 2: combine to two final lt results
-    //   stage 3: gate FFs
-    //     gate_uh =  lt_dmh
-    //     gate_ul = ~lt_dph
+    //   s1 : hi-lt + hi-eq + lo-lt for two RHSs (dmh, dph)
+    //   s2 : reduce hi/lo to lt_dmh, lt_dph (bit-11 sentinel folded in)
+    //   gate: gate_uh =  lt_dmh ;  gate_ul = ~lt_dph
     // ============================================================
     reg s1u_hi_lt_dmh, s1u_hi_eq_dmh, s1u_lo_lt_dmh;
     reg s1u_hi_lt_dph, s1u_hi_eq_dph, s1u_lo_lt_dph;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             s1u_hi_lt_dmh <= 1'b0; s1u_hi_eq_dmh <= 1'b0; s1u_lo_lt_dmh <= 1'b0;
@@ -160,7 +227,6 @@ module pwm_phase_correct_pipelined(
     end
 
     reg s2u_lt_dmh, s2u_lt_dph;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             s2u_lt_dmh <= 1'b0;
@@ -186,7 +252,6 @@ module pwm_phase_correct_pipelined(
     // ============================================================
     reg s1v_hi_lt_dmh, s1v_hi_eq_dmh, s1v_lo_lt_dmh;
     reg s1v_hi_lt_dph, s1v_hi_eq_dph, s1v_lo_lt_dph;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             s1v_hi_lt_dmh <= 1'b0; s1v_hi_eq_dmh <= 1'b0; s1v_lo_lt_dmh <= 1'b0;
@@ -202,7 +267,6 @@ module pwm_phase_correct_pipelined(
     end
 
     reg s2v_lt_dmh, s2v_lt_dph;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             s2v_lt_dmh <= 1'b0;
@@ -228,7 +292,6 @@ module pwm_phase_correct_pipelined(
     // ============================================================
     reg s1w_hi_lt_dmh, s1w_hi_eq_dmh, s1w_lo_lt_dmh;
     reg s1w_hi_lt_dph, s1w_hi_eq_dph, s1w_lo_lt_dph;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             s1w_hi_lt_dmh <= 1'b0; s1w_hi_eq_dmh <= 1'b0; s1w_lo_lt_dmh <= 1'b0;
@@ -244,7 +307,6 @@ module pwm_phase_correct_pipelined(
     end
 
     reg s2w_lt_dmh, s2w_lt_dph;
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             s2w_lt_dmh <= 1'b0;
