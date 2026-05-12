@@ -4,8 +4,10 @@
 // is advanced in IDLE, then phase offsets for U (+0), V (+683), W (+1365)
 // are computed sequentially as each phase accesses the single-port sine LUT.
 //
-// Per-phase flow: SET_ADDR -> WAIT_BRAM -> LOAD_MULT -> WAIT_MULT -> STORE
-// Total: 16 states, 16 clock cycles (~318 ns at 50.25 MHz)
+// Per-phase flow: SET_ADDR -> WAIT_BRAM -> LOAD_MULT -> WAIT_MULT -> ADJUST -> STORE
+// Total: 19 states. ADJUST registers `rounded_duty` (the bias-adjusted
+// multiplier output), so the 25-bit `mult_result + K - amp_offset` subtractor
+// and the 11-bit dead-time sat add/sub sit in separate clock cycles.
 //
 // LUT encoding: unsigned offset-binary — 0x0000=-1, 0x8000=0, 0xFFFF=+1.
 //
@@ -52,25 +54,28 @@ module spwm_tdm #(
     localparam [10:0] OFFSET_W = 11'd1365;  // 2*2048/3 ≈ 1365
 
     // State encoding
-    localparam [3:0]
-        IDLE        = 4'd0,
-        SET_ADDR_U  = 4'd1,
-        WAIT_BRAM_U = 4'd2,
-        LOAD_MULT_U = 4'd3,
-        WAIT_MULT_U = 4'd4,
-        STORE_U     = 4'd5,
-        SET_ADDR_V  = 4'd6,
-        WAIT_BRAM_V = 4'd7,
-        LOAD_MULT_V = 4'd8,
-        WAIT_MULT_V = 4'd9,
-        STORE_V     = 4'd10,
-        SET_ADDR_W  = 4'd11,
-        WAIT_BRAM_W = 4'd12,
-        LOAD_MULT_W = 4'd13,
-        WAIT_MULT_W = 4'd14,
-        STORE_W     = 4'd15;
+    localparam [4:0]
+        IDLE        = 5'd0,
+        SET_ADDR_U  = 5'd1,
+        WAIT_BRAM_U = 5'd2,
+        LOAD_MULT_U = 5'd3,
+        WAIT_MULT_U = 5'd4,
+        ADJUST_U    = 5'd5,
+        STORE_U     = 5'd6,
+        SET_ADDR_V  = 5'd7,
+        WAIT_BRAM_V = 5'd8,
+        LOAD_MULT_V = 5'd9,
+        WAIT_MULT_V = 5'd10,
+        ADJUST_V    = 5'd11,
+        STORE_V     = 5'd12,
+        SET_ADDR_W  = 5'd13,
+        WAIT_BRAM_W = 5'd14,
+        LOAD_MULT_W = 5'd15,
+        WAIT_MULT_W = 5'd16,
+        ADJUST_W    = 5'd17,
+        STORE_W     = 5'd18;
 
-    reg [3:0] state;
+    reg [4:0] state;
 
     // Integrated NCO — 32-bit phase accumulator
     reg [31:0] nco_acc;
@@ -96,17 +101,22 @@ module spwm_tdm #(
     //          = amp * (sine_ob - 32768) + K
     // For amp <= 255: adjusted in [36864 .. 16748289] (always positive,
     // no underflow). Top bit (24) is always 0, so adjusted[23:13] = duty.
-    wire [24:0] amp_offset   = {mult_b, 15'b0};
-    wire [24:0] adjusted     = mult_result + 25'd8392704 - amp_offset;
-    wire [10:0] rounded_duty = adjusted[23:13];
+    // ADJUST_* registers `rounded_duty` here, so the 25-bit bias-adjust
+    // subtractor (combinational below) and the 11-bit dead-time sat add/sub
+    // (combinational into u/v/w_minus/plus in STORE_*) sit in separate clocks.
+    wire [24:0] amp_offset       = {mult_b, 15'b0};
+    wire [24:0] adjusted          = mult_result + 25'd8392704 - amp_offset;
+    wire [10:0] rounded_duty_next = adjusted[23:13];
+
+    reg  [10:0] rounded_duty;       // captured in ADJUST_*, consumed in STORE_*
 
 	wire [10:0] rounded_duty_minus = (rounded_duty >= HALF_DEAD_TIME)
                                    ? (rounded_duty - HALF_DEAD_TIME) : 11'd0;
 	// Saturate to 2048 (one above the 11-bit counter max) so that the
 	// downstream `counter >= duty_plus` comparison is always false at
 	// saturation, giving a true 0-cycle minimum for gate_low.
-	wire [11:0] rounded_duty_plus = (rounded_duty <= (11'd2047 - HALF_DEAD_TIME))
-                                  ? (rounded_duty + HALF_DEAD_TIME) : 12'd2048;
+	wire [11:0] rounded_duty_plus  = (rounded_duty <= (11'd2047 - HALF_DEAD_TIME))
+                                   ? (rounded_duty + HALF_DEAD_TIME) : 12'd2048;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -121,6 +131,7 @@ module spwm_tdm #(
 		    w_plus   <= 12'd0;
             mult_a   <= 16'd0;
             mult_b   <= 8'd0;
+            rounded_duty <= 11'd0;
         end else begin
             case (state)
                 IDLE: begin
@@ -144,12 +155,16 @@ module spwm_tdm #(
                     state  <= WAIT_MULT_U;
                 end
                 WAIT_MULT_U: begin
-                    state <= STORE_U;
+                    state <= ADJUST_U;
+                end
+                ADJUST_U: begin
+                    rounded_duty <= rounded_duty_next;   // bias-adjust pipeline reg
+                    state        <= STORE_U;
                 end
                 STORE_U: begin
-                    u_minus <= rounded_duty_minus;
-                    u_plus <= rounded_duty_plus;
-                    state  <= SET_ADDR_V;
+                    u_minus <= rounded_duty_minus;       // sat add/sub (combinational)
+                    u_plus  <= rounded_duty_plus;
+                    state   <= SET_ADDR_V;
                 end
 
                 // --- Phase V (offset +683 = +120°) ---
@@ -166,12 +181,16 @@ module spwm_tdm #(
                     state  <= WAIT_MULT_V;
                 end
                 WAIT_MULT_V: begin
-                    state <= STORE_V;
+                    state <= ADJUST_V;
+                end
+                ADJUST_V: begin
+                    rounded_duty <= rounded_duty_next;
+                    state        <= STORE_V;
                 end
                 STORE_V: begin
                     v_minus <= rounded_duty_minus;
-                    v_plus <= rounded_duty_plus;
-                    state  <= SET_ADDR_W;
+                    v_plus  <= rounded_duty_plus;
+                    state   <= SET_ADDR_W;
                 end
 
                 // --- Phase W (offset +1365 = +240°) ---
@@ -188,12 +207,16 @@ module spwm_tdm #(
                     state  <= WAIT_MULT_W;
                 end
                 WAIT_MULT_W: begin
-                    state <= STORE_W;
+                    state <= ADJUST_W;
+                end
+                ADJUST_W: begin
+                    rounded_duty <= rounded_duty_next;
+                    state        <= STORE_W;
                 end
                 STORE_W: begin
                     w_minus <= rounded_duty_minus;
-                    w_plus <= rounded_duty_plus;
-                    state  <= IDLE;
+                    w_plus  <= rounded_duty_plus;
+                    state   <= IDLE;
                 end
 
                 default: state <= IDLE;

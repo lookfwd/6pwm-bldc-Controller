@@ -95,14 +95,20 @@ module pwm_phase_correct(
     wire [10:0] counter = counter_reg;
 
     // Two-stage sync to align with counter_reg's pipeline depth.
-    reg sync_pre;
+    reg sync_pre_l, sync_pre_h;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) sync_pre <= 1'b0;
-        else        sync_pre <= (addr == 12'd0);
+        if (!rst_n) begin
+		  sync_pre_l <= 1'b0;
+		  sync_pre_h <= 1'b0;
+		end
+        else begin
+		   sync_pre_l <= (addr[5:0] == 6'd0);
+		   sync_pre_h <= (addr[11:6] == 6'd0);
+		end
     end
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) sync <= 1'b0;
-        else        sync <= sync_pre;
+        else        sync <= sync_pre_l && sync_pre_h;
     end
 
 `elsif VARIANT_BRAMS
