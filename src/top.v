@@ -18,12 +18,11 @@
 //   sync; synchronously-related 4:1 clocks rule out metastability, so
 //   direct sampling by the fast domain is safe.
 //
-// Variant selection: pass exactly one of these defines at synthesis time:
-//   VARIANT_PIPE   — pwm_phase_correct_pipelined
-//   VARIANT_TWIN   — pwm_phase_correct_twin
-//   VARIANT_BRAMS  — pwm_phase_correct_brams
-// The Makefile exposes these as `make top_pipe`, `make top_twin`,
-// `make top_brams`.
+// Variant selection: pass exactly one of these defines at synthesis time
+// to choose the counter-generation flavor inside pwm_phase_correct:
+//   VARIANT_PIPE   — addr counter + registered triangle mux
+//   VARIANT_BRAMS  — BRAM-materialized triangle table
+// The Makefile exposes these as `make top_pipe` and `make top_brams`.
 
 module top (
     input  wire       clk_12m,
@@ -99,17 +98,7 @@ module top (
         .amplitude (amplitude)
     );
 
-    // ---- Sine LUT (slow domain — read by spwm_tdm) ----
-    wire [10:0] lut_addr;
-    wire [15:0] lut_data;
-
-    sine_lut u_lut (
-        .clk  (clk_slow),
-        .addr (lut_addr),
-        .data (lut_data)
-    );
-
-    // ---- TDM State Machine (slow domain) ----
+    // ---- TDM State Machine (slow domain; sine_lut is instantiated inside) ----
     // duty_minus = 11-bit (gate_high never-fires at 0)
     // duty_plus  = 12-bit (gate_low never-fires at 2048; one wider so the
     //              comparison against 11-bit counter cleanly evaluates false)
@@ -122,8 +111,6 @@ module top (
         .pwm_sync  (pwm_sync_wide),
         .phase_inc (phase_inc),
         .amplitude (amplitude),
-        .lut_data  (lut_data),
-        .lut_addr  (lut_addr),
         .u_minus   (u_minus),
         .u_plus    (u_plus),
         .v_minus   (v_minus),
@@ -149,37 +136,16 @@ module top (
 
     assign gate = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
 
-    // ---- Debug Telemetry: change-detect framer + UART TX (slow domain) ----
-    // Sends a 14-byte frame whenever any of the six duty thresholds change.
-    // Same baud as the receiver: CLK_DIV=176 at clk_slow.
-    wire [7:0] dbg_tx_data;
-    wire       dbg_tx_start;
-    wire       dbg_tx_ready;
-	
-    wire [10:0] dbg_u_minus = 11'd0;
-    wire [10:0] dbg_u_plus = 11'd0;
-    wire [10:0] dbg_v_minus = 11'd0;
-    wire [10:0] dbg_v_plus = 11'd0;
-    wire [10:0] dbg_w_minus = 11'd0;
-    wire [10:0] dbg_w_plus = 11'd0;
-
-    debug_tx u_dbg (
-        .clk          (clk_slow),
-        .rst_n        (rst_n),
-        .duty_u_minus (dbg_u_minus), .duty_u_plus (dbg_u_plus),
-        .duty_v_minus (dbg_v_minus), .duty_v_plus (dbg_v_plus),
-        .duty_w_minus (dbg_w_minus), .duty_w_plus (dbg_w_plus),
-        .tx_data      (dbg_tx_data),
-        .tx_start     (dbg_tx_start),
-        .tx_ready     (dbg_tx_ready)
-    );
-
+    // ---- UART TX (slow domain) ----
+    // Kept instantiated so the uart_tx pin stays driven (idles high) and
+    // there's a transmit path ready to wire up later. start is hard-tied
+    // to 0, so no bytes ever go out.
     uart_tx #(.CLK_DIV(176)) u_uart_tx (
         .clk   (clk_slow),
         .rst_n (rst_n),
-        .data  (dbg_tx_data),
-        .start (dbg_tx_start),
-        .ready (dbg_tx_ready),
+        .data  (8'h00),
+        .start (1'b0),
+        .ready (),
         .tx    (uart_tx)
     );
 

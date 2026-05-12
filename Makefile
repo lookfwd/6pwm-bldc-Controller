@@ -22,7 +22,7 @@ VARIANT ?= PIPE
 
 # Synthesis & PnR
 .PHONY: all clean timing prog sine counter_table \
-        top_pipe top_twin top_brams \
+        top_pipe top_brams \
         top_compare
 
 all: build/$(TOP).bin
@@ -79,11 +79,10 @@ top_$(1): build/top_$(1).bin
 endef
 
 $(eval $(call VARIANT_BUILD_RULE,pipe,PIPE))
-$(eval $(call VARIANT_BUILD_RULE,twin,TWIN))
 $(eval $(call VARIANT_BUILD_RULE,brams,BRAMS))
 
-top_compare: top_pipe top_twin top_brams
-	@for v in pipe twin brams; do \
+top_compare: top_pipe top_brams
+	@for v in pipe brams; do \
 		echo "--- top_$$v ---"; \
 		grep -E 'Max frequency|ICESTORM_LC|ICESTORM_RAM|SB_GB|SB_IO ' build/top_$$v.nextpnr.log | head -10; \
 	done
@@ -94,7 +93,7 @@ SIM_DIR = build/sim
 sim_tdm: $(SINE_HEX)
 	@mkdir -p $(SIM_DIR)
 	iverilog -o $(SIM_DIR)/tb_spwm_tdm -I src \
-		tb/tb_spwm_tdm.v src/spwm_tdm.v src/sine_lut.v
+		tb/tb_spwm_tdm.v src/spwm_tdm.v
 	cd src && vvp ../$(SIM_DIR)/tb_spwm_tdm
 
 sim_uart:

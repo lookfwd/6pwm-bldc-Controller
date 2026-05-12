@@ -22,8 +22,6 @@ module spwm_tdm #(
     input  wire        pwm_sync,    // pulse when counter == 0
     input  wire [31:0] phase_inc,   // NCO frequency control
     input  wire [7:0]  amplitude,
-    input  wire [15:0] lut_data,    // from sine_lut (1-cycle latency)
-    output reg  [10:0] lut_addr,    // to sine_lut (still 2048-entry table)
 
     // Saturating duty ± HALF_DEAD_TIME.
     //   *_minus is 11-bit (range 0..2047). Saturating to 0 naturally
@@ -37,6 +35,17 @@ module spwm_tdm #(
     output reg  [10:0] w_minus,
     output reg  [11:0] w_plus
 );
+
+    // Sine LUT — 2048 × 16-bit, unsigned offset-binary
+    // (0x0000=-peak, 0x8000=zero, 0xFFFF=+peak). Synchronous read,
+    // 1-cycle latency (yosys infers a BRAM).
+    reg  [10:0] lut_addr;
+    reg  [15:0] lut_data;
+    reg  [15:0] sine_mem [0:2047];
+
+    initial $readmemh("sine_init.hex", sine_mem);
+
+    always @(posedge clk) lut_data <= sine_mem[lut_addr];
 
     // Phase offsets for 120-degree spacing in 11-bit address space
     localparam [10:0] OFFSET_V = 11'd683;   // 2048/3 ≈ 683

@@ -267,3 +267,6 @@ sleep 5
 done
 ```
 
+```
+make clean && rm log.txt && make top_compare 2>&1 | tee log.txt && zip build/logs.zip build/*nextpnr.log build/*.bin
+```

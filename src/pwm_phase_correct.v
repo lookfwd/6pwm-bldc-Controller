@@ -4,13 +4,10 @@
 //
 //   VARIANT_PIPE   — Free-running 12-bit addr; counter is the registered
 //                    mux of addr[10:0] vs ~addr[10:0].
-//   VARIANT_TWIN   — Independent inc/dec counters with internal direction
-//                    tracking; counter is the registered mux of them. No
-//                    addr counter / no shared up/down adder.
 //   VARIANT_BRAMS  — Triangle counter (and sync flag) materialized in a
 //                    4096-entry BRAM lookup table.
 //
-// All variants share the duty-at-sync latch, the comparator pipeline
+// Both variants share the duty-at-sync latch, the comparator pipeline
 // (s1 → s2 → gate FF), and the gate outputs. They differ only in how
 // `counter` and `sync` are generated.
 //
@@ -108,43 +105,6 @@ module pwm_phase_correct(
         else        sync <= sync_pre;
     end
 
-`elsif VARIANT_TWIN
-    // Independent up/down counters + internal direction tracking.
-    // Invariant: counter_up_reg + counter_down_reg ≡ 2047 (mod 2048).
-    reg [10:0] counter_up_reg;
-    reg [10:0] counter_down_reg;
-    reg        dir;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            counter_up_reg   <= 11'd0;
-            counter_down_reg <= 11'd2047;
-            dir              <= 1'b0;
-        end else begin
-            counter_up_reg   <= counter_up_reg   + 11'd1;
-            counter_down_reg <= counter_down_reg - 11'd1;
-            if (counter_up_reg == 11'd2047) dir <= ~dir;
-        end
-    end
-
-    reg [10:0] counter_reg;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) counter_reg <= 11'd0;
-        else        counter_reg <= dir ? counter_down_reg : counter_up_reg;
-    end
-
-    wire [10:0] counter = counter_reg;
-
-    // Two-stage sync; trough = counter_up_reg == 0 with dir == 0.
-    reg sync_pre;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) sync_pre <= 1'b0;
-        else        sync_pre <= (counter_up_reg == 11'd0) && !dir;
-    end
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) sync <= 1'b0;
-        else        sync <= sync_pre;
-    end
-
 `elsif VARIANT_BRAMS
     // BRAM-materialized triangle table. data[10:0] = counter value,
     // data[11] = sync (high at addr 0). 4096 × 12 bits.
@@ -175,7 +135,7 @@ module pwm_phase_correct(
 `else
     initial begin
         $display("ERROR: pwm_phase_correct: no VARIANT_* define passed.");
-        $display("       Use -DVARIANT_PIPE / -DVARIANT_TWIN / -DVARIANT_BRAMS.");
+        $display("       Use -DVARIANT_PIPE or -DVARIANT_BRAMS.");
         $finish;
     end
 `endif
