@@ -6,7 +6,7 @@ set_io clk_12m 35
 
 # UART
 set_io uart_rx  4
-# set_io uart_tx  6
+set_io uart_tx  6
 
 # Gate outputs (active high, accent accent accent accent to gate driver)
 set_io gate[0]  46   # UH - Phase U High-side

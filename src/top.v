@@ -28,7 +28,8 @@
 module top (
     input  wire       clk_12m,
     input  wire       uart_rx,
-    output wire [5:0] gate,           // {UH, UL, VH, VL, WH, WL}
+    output wire       uart_tx,         // debug telemetry back to host
+    output wire [5:0] gate,            // {UH, UL, VH, VL, WH, WL}
     output wire       led_heartbeat
 );
 
@@ -85,10 +86,6 @@ module top (
     );
 
     // ---- Command Parser & Shadow Registers (slow domain) ----
-    // cmd_parser inserts a full-PWM-period OPEN sandwich around every
-    // ctrl_state change (shoot-through guard). During that window
-    // ctrl_state == OPEN, and pwm_gate_unit emits the OPEN encoding.
-    wire [1:0]  ctrl_state;
     wire [31:0] phase_inc;
     wire [7:0]  amplitude;
 
@@ -98,7 +95,6 @@ module top (
         .rx_data   (rx_data),
         .rx_valid  (rx_valid),
         .pwm_sync  (pwm_sync_wide),
-        .ctrl_state(ctrl_state),
         .phase_inc (phase_inc),
         .amplitude (amplitude)
     );
@@ -114,43 +110,102 @@ module top (
     );
 
     // ---- TDM State Machine (slow domain) — 11-bit duties ----
-    wire [10:0] duty_u, duty_v, duty_w;
-    wire        running = (ctrl_state == 2'd1);
+    wire [10:0] u_minus, u_plus, v_minus, v_plus, w_minus, w_plus;
 
-    spwm_tdm u_tdm (
+    spwm_tdm #(.HALF_DEAD_TIME(11'd25)) u_tdm (
         .clk       (clk_slow),
         .rst_n     (rst_n),
-        .enable    (running),
         .pwm_sync  (pwm_sync_wide),
         .phase_inc (phase_inc),
         .amplitude (amplitude),
         .lut_data  (lut_data),
         .lut_addr  (lut_addr),
-        .duty_u    (duty_u),
-        .duty_v    (duty_v),
-        .duty_w    (duty_w)
+        .u_minus   (u_minus),
+        .u_plus    (u_plus),
+        .v_minus   (v_minus),
+        .v_plus    (v_plus),
+        .w_minus   (w_minus),
+        .w_plus    (w_plus)
     );
+	
+	wire gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl;
 
-    // ---- PWM Gate Unit — variant-selecting wrapper ----
-    // Owns: saturating duty±dt arithmetic (slow domain),
-    //       ctrl_state → duty encoding (OPEN/RUNNING/BRAKE),
-    //       fast-domain pwm_phase_correct_<variant> instantiation.
-    wire gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl;
-
-    pwm_gate_unit #(.DEAD_TIME(11'd50)) u_pwm_gate (
-        .clk        (clk_fast),
-        .rst_n      (rst_n),
-        .ctrl_state (ctrl_state),
-        .duty_u     (duty_u),
-        .duty_v     (duty_v),
-        .duty_w     (duty_w),
-        .sync       (pwm_sync_fast),
-        .gate_uh    (gate_uh), .gate_ul (gate_ul),
-        .gate_vh    (gate_vh), .gate_vl (gate_vl),
-        .gate_wh    (gate_wh), .gate_wl (gate_wl)
+`ifdef VARIANT_PIPE
+    pwm_phase_correct_pipelined u_pwm (
+        .clk (clk_fast), .rst_n (rst_n),
+        .duty_u_minus_dt_half (u_minus), .duty_u_plus_dt_half (u_plus),
+        .duty_v_minus_dt_half (v_minus), .duty_v_plus_dt_half (v_plus),
+        .duty_w_minus_dt_half (w_minus), .duty_w_plus_dt_half (w_plus),
+        .sync (pwm_sync_fast),
+        .gate_uh (gate_uh), .gate_ul (gate_ul),
+        .gate_vh (gate_vh), .gate_vl (gate_vl),
+        .gate_wh (gate_wh), .gate_wl (gate_wl)
     );
+`elsif VARIANT_TWIN
+    pwm_phase_correct_twin u_pwm (
+        .clk (clk_fast), .rst_n (rst_n),
+        .duty_u_minus_dt_half (u_minus), .duty_u_plus_dt_half (u_plus),
+        .duty_v_minus_dt_half (v_minus), .duty_v_plus_dt_half (v_plus),
+        .duty_w_minus_dt_half (w_minus), .duty_w_plus_dt_half (w_plus),
+        .sync (pwm_sync_fast),
+        .gate_uh (gate_uh), .gate_ul (gate_ul),
+        .gate_vh (gate_vh), .gate_vl (gate_vl),
+        .gate_wh (gate_wh), .gate_wl (gate_wl)
+    );
+`elsif VARIANT_BRAMS
+    pwm_phase_correct_brams u_pwm (
+        .clk (clk_fast), .rst_n (rst_n),
+        .duty_u_minus_dt_half (u_minus), .duty_u_plus_dt_half (u_plus),
+        .duty_v_minus_dt_half (v_minus), .duty_v_plus_dt_half (v_plus),
+        .duty_w_minus_dt_half (w_minus), .duty_w_plus_dt_half (w_plus),
+        .sync (pwm_sync_fast),
+        .gate_uh (gate_uh), .gate_ul (gate_ul),
+        .gate_vh (gate_vh), .gate_vl (gate_vl),
+        .gate_wh (gate_wh), .gate_wl (gate_wl)
+    );
+`else
+    // No variant define passed — synthesis will fail with unconnected
+    // module-output wires. Build with one of:
+    //   yosys -D VARIANT_PIPE   ...
+    //   yosys -D VARIANT_TWIN   ...
+    //   yosys -D VARIANT_BRAMS  ...
+`endif
 
     assign gate = {gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl};
+
+    // ---- Debug Telemetry: change-detect framer + UART TX (slow domain) ----
+    // Sends a 14-byte frame whenever any of the six duty thresholds change.
+    // Same baud as the receiver: CLK_DIV=176 at clk_slow.
+    wire [7:0] dbg_tx_data;
+    wire       dbg_tx_start;
+    wire       dbg_tx_ready;
+	
+    wire [10:0] dbg_u_minus = 11'd0;
+    wire [10:0] dbg_u_plus = 11'd0;
+    wire [10:0] dbg_v_minus = 11'd0;
+    wire [10:0] dbg_v_plus = 11'd0;
+    wire [10:0] dbg_w_minus = 11'd0;
+    wire [10:0] dbg_w_plus = 11'd0;
+
+    debug_tx u_dbg (
+        .clk          (clk_slow),
+        .rst_n        (rst_n),
+        .duty_u_minus (dbg_u_minus), .duty_u_plus (dbg_u_plus),
+        .duty_v_minus (dbg_v_minus), .duty_v_plus (dbg_v_plus),
+        .duty_w_minus (dbg_w_minus), .duty_w_plus (dbg_w_plus),
+        .tx_data      (dbg_tx_data),
+        .tx_start     (dbg_tx_start),
+        .tx_ready     (dbg_tx_ready)
+    );
+
+    uart_tx #(.CLK_DIV(176)) u_uart_tx (
+        .clk   (clk_slow),
+        .rst_n (rst_n),
+        .data  (dbg_tx_data),
+        .start (dbg_tx_start),
+        .ready (dbg_tx_ready),
+        .tx    (uart_tx)
+    );
 
     // ---- Heartbeat LED (slow domain — ~2.46 Hz blink at 20.625 MHz) ----
     reg [22:0] hb_cnt;

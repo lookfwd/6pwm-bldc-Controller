@@ -7,21 +7,31 @@
 // Per-phase flow: SET_ADDR -> WAIT_BRAM -> LOAD_MULT -> WAIT_MULT -> STORE
 // Total: 16 states, 16 clock cycles (~318 ns at 50.25 MHz)
 //
-// Math: duty = (sine_16bit * amplitude_8bit + 0x1000) >> 13
-//       24-bit product, rounded, truncated to 11 bits
+// LUT encoding: unsigned offset-binary — 0x0000=-1, 0x8000=0, 0xFFFF=+1.
+//
+// Math: duty = (sine_ob * amp + 8392704 - amp * 32768) >> 13
+//            = (amp * (sine_ob - 32768) + 8392704) >> 13
+// All arithmetic unsigned, matching the unsigned PWM up/down counter.
+// Duty midpoint = 1024 for every amplitude; range [4 .. 2044] at amp=255.
 
-module spwm_tdm (
+module spwm_tdm #(
+    parameter [10:0] HALF_DEAD_TIME = 11'd25
+) (
     input  wire        clk,
     input  wire        rst_n,
-    input  wire        enable,      // high when state == RUNNING
     input  wire        pwm_sync,    // pulse when counter == 0
     input  wire [31:0] phase_inc,   // NCO frequency control
     input  wire [7:0]  amplitude,
     input  wire [15:0] lut_data,    // from sine_lut (1-cycle latency)
     output reg  [10:0] lut_addr,    // to sine_lut (still 2048-entry table)
-    output reg  [10:0] duty_u,
-    output reg  [10:0] duty_v,
-    output reg  [10:0] duty_w
+	
+    // Saturating duty ± HALF_DEAD_TIME (slow-domain combinational)
+    output reg  [10:0] u_minus,
+    output reg  [10:0] u_plus,
+    output reg  [10:0] v_minus,
+    output reg  [10:0] v_plus,
+    output reg  [10:0] w_minus,
+    output reg  [10:0] w_plus
 );
 
     // Phase offsets for 120-degree spacing in 11-bit address space
@@ -53,33 +63,52 @@ module spwm_tdm (
     reg [31:0] nco_acc;
     wire [10:0] base_phase = nco_acc[31:21];
 
-    // Multiplier pipeline (registered output for timing closure)
-    reg  [15:0] mult_a;       // sine value
-    reg  [7:0]  mult_b;       // amplitude
-    reg  [23:0] mult_result;  // registered product
+    // Multiplier pipeline (registered output for timing closure).
+    // All unsigned: LUT is offset-binary, amplitude is unsigned 0..255.
+    // Max product: 65535 * 255 = 16,711,425, fits in 24 bits.
+    reg  [15:0] mult_a;
+    reg  [7:0]  mult_b;
+    reg  [23:0] mult_result;
 
     always @(posedge clk) begin
         mult_result <= mult_a * mult_b;
     end
 
-    // Rounding: add half-LSB (2^12 = 0x1000) then shift right 13
-    // for 11-bit duty (range 0..2047, centered ~1024)
-    wire [10:0] rounded_duty = (mult_result + 24'h1000) >> 13;
+    // Subtract the amplitude-scaled LUT midpoint (amp * 32768) so the sine
+    // zero-crossing always lands on the same duty regardless of amplitude,
+    // then add K = 1024*8192 + 4096 to center that duty at 1024 with
+    // round-to-nearest. All operands unsigned.
+    //
+    // adjusted = mult_result + K - amp*32768
+    //          = amp * (sine_ob - 32768) + K
+    // For amp <= 255: adjusted in [36864 .. 16748289] (always positive,
+    // no underflow). Top bit (24) is always 0, so adjusted[23:13] = duty.
+    wire [24:0] amp_offset   = {mult_b, 15'b0};
+    wire [24:0] adjusted     = mult_result + 25'd8392704 - amp_offset;
+    wire [10:0] rounded_duty = adjusted[23:13];
+
+	wire [10:0] rounded_duty_minus = (rounded_duty >= HALF_DEAD_TIME)
+                                   ? (rounded_duty - HALF_DEAD_TIME) : 11'd0;
+	wire [10:0] rounded_duty_plus = (rounded_duty <= (11'd2047 - HALF_DEAD_TIME))
+                                  ? (rounded_duty + HALF_DEAD_TIME) : 11'd2047;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state    <= IDLE;
             nco_acc  <= 32'd0;
             lut_addr <= 11'd0;
-            duty_u   <= 11'd0;
-            duty_v   <= 11'd0;
-            duty_w   <= 11'd0;
+		    u_minus   <= 11'd0;
+		    u_plus   <= 11'd0;
+		    v_minus   <= 11'd0;
+		    v_plus   <= 11'd0;
+		    w_minus   <= 11'd0;
+		    w_plus   <= 11'd0;
             mult_a   <= 16'd0;
             mult_b   <= 8'd0;
         end else begin
             case (state)
                 IDLE: begin
-                    if (enable && pwm_sync) begin
+                    if (pwm_sync) begin
                         nco_acc <= nco_acc + phase_inc;  // advance NCO
                         state   <= SET_ADDR_U;
                     end
@@ -102,7 +131,8 @@ module spwm_tdm (
                     state <= STORE_U;
                 end
                 STORE_U: begin
-                    duty_u <= rounded_duty;
+                    u_minus <= rounded_duty_minus;
+                    u_plus <= rounded_duty_plus;
                     state  <= SET_ADDR_V;
                 end
 
@@ -123,7 +153,8 @@ module spwm_tdm (
                     state <= STORE_V;
                 end
                 STORE_V: begin
-                    duty_v <= rounded_duty;
+                    v_minus <= rounded_duty_minus;
+                    v_plus <= rounded_duty_plus;
                     state  <= SET_ADDR_W;
                 end
 
@@ -144,7 +175,8 @@ module spwm_tdm (
                     state <= STORE_W;
                 end
                 STORE_W: begin
-                    duty_w <= rounded_duty;
+                    w_minus <= rounded_duty_minus;
+                    w_plus <= rounded_duty_plus;
                     state  <= IDLE;
                 end
 

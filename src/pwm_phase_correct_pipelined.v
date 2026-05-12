@@ -37,6 +37,33 @@ module pwm_phase_correct_pipelined(
     output reg         gate_wl
 );
 
+    reg [10:0] duty_u_minus_dt_half_reg;
+	reg [10:0] duty_u_plus_dt_half_reg;
+    reg [10:0] duty_v_minus_dt_half_reg;
+	reg [10:0] duty_v_plus_dt_half_reg;
+    reg [10:0] duty_w_minus_dt_half_reg;
+	reg [10:0] duty_w_plus_dt_half_reg;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)  begin
+            duty_u_minus_dt_half_reg <= 11'd0;
+            duty_u_plus_dt_half_reg <= 11'd0;
+            duty_v_minus_dt_half_reg <= 11'd0;
+            duty_v_plus_dt_half_reg <= 11'd0;
+            duty_w_minus_dt_half_reg <= 11'd0;
+            duty_w_plus_dt_half_reg <= 11'd0;
+		end
+        else if (sync) begin
+            duty_u_minus_dt_half_reg <= duty_u_minus_dt_half;
+            duty_u_plus_dt_half_reg <= duty_u_plus_dt_half;
+            duty_v_minus_dt_half_reg <= duty_v_minus_dt_half;
+            duty_v_plus_dt_half_reg <= duty_v_plus_dt_half;
+            duty_w_minus_dt_half_reg <= duty_w_minus_dt_half;
+            duty_w_plus_dt_half_reg <= duty_w_plus_dt_half;
+		end
+    end
+
+
     // ============================================================
     // Free-running 12-bit address counter
     // ============================================================
@@ -99,20 +126,20 @@ module pwm_phase_correct_pipelined(
     wire [4:0] counter_down_hi = counter_down[10:6];
     wire [5:0] counter_down_lo = counter_down[5:0];
 
-    wire [4:0] duty_u_dmh_hi = duty_u_minus_dt_half[10:6];
-    wire [5:0] duty_u_dmh_lo = duty_u_minus_dt_half[5:0];
-    wire [4:0] duty_u_dph_hi = duty_u_plus_dt_half [10:6];
-    wire [5:0] duty_u_dph_lo = duty_u_plus_dt_half [5:0];
+    wire [4:0] duty_u_dmh_hi = duty_u_minus_dt_half_reg[10:6];
+    wire [5:0] duty_u_dmh_lo = duty_u_minus_dt_half_reg[5:0];
+    wire [4:0] duty_u_dph_hi = duty_u_plus_dt_half_reg [10:6];
+    wire [5:0] duty_u_dph_lo = duty_u_plus_dt_half_reg [5:0];
 
-    wire [4:0] duty_v_dmh_hi = duty_v_minus_dt_half[10:6];
-    wire [5:0] duty_v_dmh_lo = duty_v_minus_dt_half[5:0];
-    wire [4:0] duty_v_dph_hi = duty_v_plus_dt_half [10:6];
-    wire [5:0] duty_v_dph_lo = duty_v_plus_dt_half [5:0];
+    wire [4:0] duty_v_dmh_hi = duty_v_minus_dt_half_reg[10:6];
+    wire [5:0] duty_v_dmh_lo = duty_v_minus_dt_half_reg[5:0];
+    wire [4:0] duty_v_dph_hi = duty_v_plus_dt_half_reg [10:6];
+    wire [5:0] duty_v_dph_lo = duty_v_plus_dt_half_reg [5:0];
 
-    wire [4:0] duty_w_dmh_hi = duty_w_minus_dt_half[10:6];
-    wire [5:0] duty_w_dmh_lo = duty_w_minus_dt_half[5:0];
-    wire [4:0] duty_w_dph_hi = duty_w_plus_dt_half [10:6];
-    wire [5:0] duty_w_dph_lo = duty_w_plus_dt_half [5:0];
+    wire [4:0] duty_w_dmh_hi = duty_w_minus_dt_half_reg[10:6];
+    wire [5:0] duty_w_dmh_lo = duty_w_minus_dt_half_reg[5:0];
+    wire [4:0] duty_w_dph_hi = duty_w_plus_dt_half_reg [10:6];
+    wire [5:0] duty_w_dph_lo = duty_w_plus_dt_half_reg [5:0];
 
     // ============================================================
     // Phase U pipelined dead-time

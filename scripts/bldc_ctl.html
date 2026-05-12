@@ -108,6 +108,28 @@
     font-size: 13px;
     line-height: 1.5;
   }
+  .tele-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: #15151a;
+    border: 1px solid #2a2a30;
+    border-radius: 8px;
+  }
+  .tele-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .tele-val {
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -140,13 +162,25 @@
     </div>
 
     <div class="row">
-      <label for="speed">Speed <span class="val"><span id="speed-val">0</span> Hz</span></label>
+      <label for="speed">Speed (Negative means Reverse)<span class="val"><span id="speed-val">0</span> Hz</span></label>
       <input id="speed" type="range" min="-200" max="200" step="1" value="0">
     </div>
 
     <div class="row">
       <label for="amp">Amplitude <span class="val"><span id="amp-val">0</span> / 255</span></label>
       <input id="amp" type="range" min="0" max="255" step="1" value="0">
+    </div>
+
+    <div class="row telemetry">
+      <label>Telemetry <span class="val"><span id="tele-rate">0</span> fps</span></label>
+      <div class="tele-grid">
+        <div class="tele-row"><span class="tele-name">UH thr</span><span class="tele-val" id="t-u-minus">—</span></div>
+        <div class="tele-row"><span class="tele-name">UL thr</span><span class="tele-val" id="t-u-plus">—</span></div>
+        <div class="tele-row"><span class="tele-name">VH thr</span><span class="tele-val" id="t-v-minus">—</span></div>
+        <div class="tele-row"><span class="tele-name">VL thr</span><span class="tele-val" id="t-v-plus">—</span></div>
+        <div class="tele-row"><span class="tele-name">WH thr</span><span class="tele-val" id="t-w-minus">—</span></div>
+        <div class="tele-row"><span class="tele-name">WL thr</span><span class="tele-val" id="t-w-plus">—</span></div>
+      </div>
     </div>
   </div>
 </div>
@@ -175,11 +209,20 @@ const ampSl         = $("amp");
 const modeValEl     = $("mode-val");
 const speedValEl    = $("speed-val");
 const ampValEl      = $("amp-val");
+const teleEls = {
+  uMinus: $("t-u-minus"), uPlus: $("t-u-plus"),
+  vMinus: $("t-v-minus"), vPlus: $("t-v-plus"),
+  wMinus: $("t-w-minus"), wPlus: $("t-w-plus"),
+  rate:   $("tele-rate"),
+};
 
 let port = null;
 let writer = null;
 let writing = false;
 let pending = null;   // latest queued packet while a write is in flight
+let reader = null;
+let readLoopAlive = false;
+let frameCount = 0;
 
 function setStatus(text, kind = "") {
   statusEl.textContent = text;
@@ -219,6 +262,9 @@ async function connect() {
     await sendAmplitude(+ampSl.value);
     await sendSpeed(+speedSl.value);
     await sendState(+modeSel.value);
+
+    // Start pulling telemetry frames from the device.
+    startReadLoop();
 
     port.addEventListener("disconnect", onPortDisconnect);
   } catch (err) {
