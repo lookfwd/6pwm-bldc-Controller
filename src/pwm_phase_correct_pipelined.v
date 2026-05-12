@@ -1,23 +1,19 @@
 // Phase-Correct PWM + 3-Channel Dead-Time Gate Generator
-// Pipelined variant — single up/down counter with registered
-// passthrough copies of addr feeding each phase's compare lanes.
+// Pipelined variant — single triangle counter formed by a registered
+// mux of address halves at the counter stage. Both halves of the
+// triangle share thresholds, so only one comparator lane per phase is
+// needed (mirroring the brams variant's structure).
 //
-// Symmetric dead-time, centered on the duty boundary. The fast-domain
-// compares only against duty±dt/2, never against duty itself:
+// Symmetric dead-time, centered on the duty boundary:
 //
 //   gate_high = (counter <  duty - dt/2)
 //   gate_low  = (counter >= duty + dt/2)   = ~(counter < duty + dt/2)
 //
-// Both halves use the same two thresholds; the only difference is which
-// counter feeds the compare (counter_up for up half, counter_down for
-// down half). Two unique RHS values per phase.
+// Duty thresholds are latched at sync (trough) so they remain stable
+// across the entire PWM period regardless of when spwm_tdm finishes.
 //
-// Total ON-time per period, gate_high : 2*duty - dt
-// Total ON-time per period, gate_low  : 4096 - 2*duty - dt
-// Dead-time width                     : dt cycles
-//
-// Pipeline depth addr -> gate FF: 4 stages. addr[11] pipelined through
-// dir_d0..d2.
+// Pipeline depth addr -> gate FF: 4 stages
+//   addr -> counter_reg -> s1 -> s2 -> gate
 //
 // Companion modules: pwm_phase_correct_twin, pwm_phase_correct_brams.
 
@@ -37,35 +33,37 @@ module pwm_phase_correct_pipelined(
     output reg         gate_wl
 );
 
+    // ============================================================
+    // Duty thresholds latched at sync (= trough). Stable for the whole
+    // PWM period regardless of when spwm_tdm finishes updating duties.
+    // ============================================================
     reg [10:0] duty_u_minus_dt_half_reg;
-	reg [10:0] duty_u_plus_dt_half_reg;
+    reg [10:0] duty_u_plus_dt_half_reg;
     reg [10:0] duty_v_minus_dt_half_reg;
-	reg [10:0] duty_v_plus_dt_half_reg;
+    reg [10:0] duty_v_plus_dt_half_reg;
     reg [10:0] duty_w_minus_dt_half_reg;
-	reg [10:0] duty_w_plus_dt_half_reg;
+    reg [10:0] duty_w_plus_dt_half_reg;
 
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)  begin
+        if (!rst_n) begin
             duty_u_minus_dt_half_reg <= 11'd0;
-            duty_u_plus_dt_half_reg <= 11'd0;
+            duty_u_plus_dt_half_reg  <= 11'd0;
             duty_v_minus_dt_half_reg <= 11'd0;
-            duty_v_plus_dt_half_reg <= 11'd0;
+            duty_v_plus_dt_half_reg  <= 11'd0;
             duty_w_minus_dt_half_reg <= 11'd0;
-            duty_w_plus_dt_half_reg <= 11'd0;
-		end
-        else if (sync) begin
+            duty_w_plus_dt_half_reg  <= 11'd0;
+        end else if (sync) begin
             duty_u_minus_dt_half_reg <= duty_u_minus_dt_half;
-            duty_u_plus_dt_half_reg <= duty_u_plus_dt_half;
+            duty_u_plus_dt_half_reg  <= duty_u_plus_dt_half;
             duty_v_minus_dt_half_reg <= duty_v_minus_dt_half;
-            duty_v_plus_dt_half_reg <= duty_v_plus_dt_half;
+            duty_v_plus_dt_half_reg  <= duty_v_plus_dt_half;
             duty_w_minus_dt_half_reg <= duty_w_minus_dt_half;
-            duty_w_plus_dt_half_reg <= duty_w_plus_dt_half;
-		end
+            duty_w_plus_dt_half_reg  <= duty_w_plus_dt_half;
+        end
     end
 
-
     // ============================================================
-    // Free-running 12-bit address counter
+    // Free-running 12-bit address counter.
     // ============================================================
     reg [11:0] addr;
 
@@ -75,56 +73,42 @@ module pwm_phase_correct_pipelined(
     end
 
     // ============================================================
-    // Registered passthrough copies of addr[10:0] and ~addr[10:0].
+    // Single triangle counter — registered mux of address halves.
+    //   UP half   (addr[11]=0): counter = addr[10:0]   = 0..2047
+    //   DOWN half (addr[11]=1): counter = ~addr[10:0]  = 2047..0
+    // Triangle sequence: 0,1,...,2047,2047,2046,...,1,0,0,1,...
     // ============================================================
-    reg [10:0] counter_up_reg;
-    reg [10:0] counter_down_reg;
+    reg [10:0] counter_reg;
 
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            counter_up_reg   <= 11'd0;
-            counter_down_reg <= 11'd2047;
-        end else begin
-            counter_up_reg   <=  addr[10:0];
-            counter_down_reg <= ~addr[10:0];
-        end
+        if (!rst_n)  counter_reg <= 11'd0;
+        else         counter_reg <= addr[11] ? ~addr[10:0] : addr[10:0];
     end
 
-    wire [10:0] counter_up   = counter_up_reg;
-    wire [10:0] counter_down = counter_down_reg;
+    wire [10:0] counter = counter_reg;
 
     // ============================================================
-    // Direction pipeline (3 explicit flops to match 4-stage data pipe).
+    // sync: two-stage register pipeline matching twin's structure.
+    // sync_pre registers (addr == 0); sync is one cycle later, so it
+    // fires the cycle after counter_reg hits the trough — which is when
+    // the duty-latch picks up the new period's thresholds.
     // ============================================================
-    reg dir_d0, dir_d1, dir_d2;
-
+    reg sync_pre;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            dir_d0 <= 1'b0;
-            dir_d1 <= 1'b0;
-            dir_d2 <= 1'b0;
-        end else begin
-            dir_d0 <= addr[11];
-            dir_d1 <= dir_d0;
-            dir_d2 <= dir_d1;
-        end
+        if (!rst_n) sync_pre <= 1'b0;
+        else        sync_pre <= (addr == 12'd0);
     end
 
-    // ============================================================
-    // sync: registered (addr == 0).
-    // ============================================================
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) sync <= 1'b0;
-        else        sync <= (addr == 12'd0);
+        else        sync <= sync_pre;
     end
 
     // ============================================================
     // Counter / duty splits (6 lsb + 5 msb).
     // ============================================================
-    wire [4:0] counter_up_hi   = counter_up[10:6];
-    wire [5:0] counter_up_lo   = counter_up[5:0];
-    wire [4:0] counter_down_hi = counter_down[10:6];
-    wire [5:0] counter_down_lo = counter_down[5:0];
+    wire [4:0] counter_hi = counter[10:6];
+    wire [5:0] counter_lo = counter[5:0];
 
     wire [4:0] duty_u_dmh_hi = duty_u_minus_dt_half_reg[10:6];
     wire [5:0] duty_u_dmh_lo = duty_u_minus_dt_half_reg[5:0];
@@ -143,52 +127,38 @@ module pwm_phase_correct_pipelined(
 
     // ============================================================
     // Phase U pipelined dead-time
-    //   Up path:   counter_up   <  duty_u_minus_dt_half  -> lt_dmh_up
-    //              counter_up   <  duty_u_plus_dt_half   -> lt_dph_up
-    //   Down path: counter_down <  duty_u_minus_dt_half  -> lt_dmh_dn
-    //              counter_down <  duty_u_plus_dt_half   -> lt_dph_dn
-    // gate_uh = dir ? lt_dmh_dn : lt_dmh_up   (high  = counter<duty-dt/2)
-    // gate_ul = dir ? ~lt_dph_dn : ~lt_dph_up (low  = counter>=duty+dt/2)
+    //   stage 1: hi-lt + hi-eq + lo-lt for two RHSs (dmh, dph)
+    //   stage 2: combine to two final lt results
+    //   stage 3: gate FFs
+    //     gate_uh =  lt_dmh
+    //     gate_ul = ~lt_dph
     // ============================================================
-    reg s1u_up_hi_lt_dmh, s1u_up_hi_eq_dmh, s1u_up_lo_lt_dmh;
-    reg s1u_up_hi_lt_dph, s1u_up_hi_eq_dph, s1u_up_lo_lt_dph;
-    reg s1u_dn_hi_lt_dmh, s1u_dn_hi_eq_dmh, s1u_dn_lo_lt_dmh;
-    reg s1u_dn_hi_lt_dph, s1u_dn_hi_eq_dph, s1u_dn_lo_lt_dph;
+    reg s1u_hi_lt_dmh, s1u_hi_eq_dmh, s1u_lo_lt_dmh;
+    reg s1u_hi_lt_dph, s1u_hi_eq_dph, s1u_lo_lt_dph;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            s1u_up_hi_lt_dmh <= 1'b0; s1u_up_hi_eq_dmh <= 1'b0; s1u_up_lo_lt_dmh <= 1'b0;
-            s1u_up_hi_lt_dph <= 1'b0; s1u_up_hi_eq_dph <= 1'b0; s1u_up_lo_lt_dph <= 1'b0;
-            s1u_dn_hi_lt_dmh <= 1'b0; s1u_dn_hi_eq_dmh <= 1'b0; s1u_dn_lo_lt_dmh <= 1'b0;
-            s1u_dn_hi_lt_dph <= 1'b0; s1u_dn_hi_eq_dph <= 1'b0; s1u_dn_lo_lt_dph <= 1'b0;
+            s1u_hi_lt_dmh <= 1'b0; s1u_hi_eq_dmh <= 1'b0; s1u_lo_lt_dmh <= 1'b0;
+            s1u_hi_lt_dph <= 1'b0; s1u_hi_eq_dph <= 1'b0; s1u_lo_lt_dph <= 1'b0;
         end else begin
-            s1u_up_hi_lt_dmh <= (counter_up_hi   <  duty_u_dmh_hi);
-            s1u_up_hi_eq_dmh <= (counter_up_hi   == duty_u_dmh_hi);
-            s1u_up_lo_lt_dmh <= (counter_up_lo   <  duty_u_dmh_lo);
-            s1u_up_hi_lt_dph <= (counter_up_hi   <  duty_u_dph_hi);
-            s1u_up_hi_eq_dph <= (counter_up_hi   == duty_u_dph_hi);
-            s1u_up_lo_lt_dph <= (counter_up_lo   <  duty_u_dph_lo);
-            s1u_dn_hi_lt_dmh <= (counter_down_hi <  duty_u_dmh_hi);
-            s1u_dn_hi_eq_dmh <= (counter_down_hi == duty_u_dmh_hi);
-            s1u_dn_lo_lt_dmh <= (counter_down_lo <  duty_u_dmh_lo);
-            s1u_dn_hi_lt_dph <= (counter_down_hi <  duty_u_dph_hi);
-            s1u_dn_hi_eq_dph <= (counter_down_hi == duty_u_dph_hi);
-            s1u_dn_lo_lt_dph <= (counter_down_lo <  duty_u_dph_lo);
+            s1u_hi_lt_dmh <= (counter_hi <  duty_u_dmh_hi);
+            s1u_hi_eq_dmh <= (counter_hi == duty_u_dmh_hi);
+            s1u_lo_lt_dmh <= (counter_lo <  duty_u_dmh_lo);
+            s1u_hi_lt_dph <= (counter_hi <  duty_u_dph_hi);
+            s1u_hi_eq_dph <= (counter_hi == duty_u_dph_hi);
+            s1u_lo_lt_dph <= (counter_lo <  duty_u_dph_lo);
         end
     end
 
-    reg s2u_up_lt_dmh, s2u_up_lt_dph;
-    reg s2u_dn_lt_dmh, s2u_dn_lt_dph;
+    reg s2u_lt_dmh, s2u_lt_dph;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            s2u_up_lt_dmh <= 1'b0; s2u_up_lt_dph <= 1'b0;
-            s2u_dn_lt_dmh <= 1'b0; s2u_dn_lt_dph <= 1'b0;
+            s2u_lt_dmh <= 1'b0;
+            s2u_lt_dph <= 1'b0;
         end else begin
-            s2u_up_lt_dmh <= s1u_up_hi_lt_dmh | (s1u_up_hi_eq_dmh & s1u_up_lo_lt_dmh);
-            s2u_up_lt_dph <= s1u_up_hi_lt_dph | (s1u_up_hi_eq_dph & s1u_up_lo_lt_dph);
-            s2u_dn_lt_dmh <= s1u_dn_hi_lt_dmh | (s1u_dn_hi_eq_dmh & s1u_dn_lo_lt_dmh);
-            s2u_dn_lt_dph <= s1u_dn_hi_lt_dph | (s1u_dn_hi_eq_dph & s1u_dn_lo_lt_dph);
+            s2u_lt_dmh <= s1u_hi_lt_dmh | (s1u_hi_eq_dmh & s1u_lo_lt_dmh);
+            s2u_lt_dph <= s1u_hi_lt_dph | (s1u_hi_eq_dph & s1u_lo_lt_dph);
         end
     end
 
@@ -197,53 +167,40 @@ module pwm_phase_correct_pipelined(
             gate_uh <= 1'b0;
             gate_ul <= 1'b0;
         end else begin
-            gate_uh <= dir_d2 ?  s2u_dn_lt_dmh :  s2u_up_lt_dmh;
-            gate_ul <= dir_d2 ? ~s2u_dn_lt_dph : ~s2u_up_lt_dph;
+            gate_uh <=  s2u_lt_dmh;
+            gate_ul <= ~s2u_lt_dph;
         end
     end
 
     // ============================================================
     // Phase V pipelined dead-time
     // ============================================================
-    reg s1v_up_hi_lt_dmh, s1v_up_hi_eq_dmh, s1v_up_lo_lt_dmh;
-    reg s1v_up_hi_lt_dph, s1v_up_hi_eq_dph, s1v_up_lo_lt_dph;
-    reg s1v_dn_hi_lt_dmh, s1v_dn_hi_eq_dmh, s1v_dn_lo_lt_dmh;
-    reg s1v_dn_hi_lt_dph, s1v_dn_hi_eq_dph, s1v_dn_lo_lt_dph;
+    reg s1v_hi_lt_dmh, s1v_hi_eq_dmh, s1v_lo_lt_dmh;
+    reg s1v_hi_lt_dph, s1v_hi_eq_dph, s1v_lo_lt_dph;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            s1v_up_hi_lt_dmh <= 1'b0; s1v_up_hi_eq_dmh <= 1'b0; s1v_up_lo_lt_dmh <= 1'b0;
-            s1v_up_hi_lt_dph <= 1'b0; s1v_up_hi_eq_dph <= 1'b0; s1v_up_lo_lt_dph <= 1'b0;
-            s1v_dn_hi_lt_dmh <= 1'b0; s1v_dn_hi_eq_dmh <= 1'b0; s1v_dn_lo_lt_dmh <= 1'b0;
-            s1v_dn_hi_lt_dph <= 1'b0; s1v_dn_hi_eq_dph <= 1'b0; s1v_dn_lo_lt_dph <= 1'b0;
+            s1v_hi_lt_dmh <= 1'b0; s1v_hi_eq_dmh <= 1'b0; s1v_lo_lt_dmh <= 1'b0;
+            s1v_hi_lt_dph <= 1'b0; s1v_hi_eq_dph <= 1'b0; s1v_lo_lt_dph <= 1'b0;
         end else begin
-            s1v_up_hi_lt_dmh <= (counter_up_hi   <  duty_v_dmh_hi);
-            s1v_up_hi_eq_dmh <= (counter_up_hi   == duty_v_dmh_hi);
-            s1v_up_lo_lt_dmh <= (counter_up_lo   <  duty_v_dmh_lo);
-            s1v_up_hi_lt_dph <= (counter_up_hi   <  duty_v_dph_hi);
-            s1v_up_hi_eq_dph <= (counter_up_hi   == duty_v_dph_hi);
-            s1v_up_lo_lt_dph <= (counter_up_lo   <  duty_v_dph_lo);
-            s1v_dn_hi_lt_dmh <= (counter_down_hi <  duty_v_dmh_hi);
-            s1v_dn_hi_eq_dmh <= (counter_down_hi == duty_v_dmh_hi);
-            s1v_dn_lo_lt_dmh <= (counter_down_lo <  duty_v_dmh_lo);
-            s1v_dn_hi_lt_dph <= (counter_down_hi <  duty_v_dph_hi);
-            s1v_dn_hi_eq_dph <= (counter_down_hi == duty_v_dph_hi);
-            s1v_dn_lo_lt_dph <= (counter_down_lo <  duty_v_dph_lo);
+            s1v_hi_lt_dmh <= (counter_hi <  duty_v_dmh_hi);
+            s1v_hi_eq_dmh <= (counter_hi == duty_v_dmh_hi);
+            s1v_lo_lt_dmh <= (counter_lo <  duty_v_dmh_lo);
+            s1v_hi_lt_dph <= (counter_hi <  duty_v_dph_hi);
+            s1v_hi_eq_dph <= (counter_hi == duty_v_dph_hi);
+            s1v_lo_lt_dph <= (counter_lo <  duty_v_dph_lo);
         end
     end
 
-    reg s2v_up_lt_dmh, s2v_up_lt_dph;
-    reg s2v_dn_lt_dmh, s2v_dn_lt_dph;
+    reg s2v_lt_dmh, s2v_lt_dph;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            s2v_up_lt_dmh <= 1'b0; s2v_up_lt_dph <= 1'b0;
-            s2v_dn_lt_dmh <= 1'b0; s2v_dn_lt_dph <= 1'b0;
+            s2v_lt_dmh <= 1'b0;
+            s2v_lt_dph <= 1'b0;
         end else begin
-            s2v_up_lt_dmh <= s1v_up_hi_lt_dmh | (s1v_up_hi_eq_dmh & s1v_up_lo_lt_dmh);
-            s2v_up_lt_dph <= s1v_up_hi_lt_dph | (s1v_up_hi_eq_dph & s1v_up_lo_lt_dph);
-            s2v_dn_lt_dmh <= s1v_dn_hi_lt_dmh | (s1v_dn_hi_eq_dmh & s1v_dn_lo_lt_dmh);
-            s2v_dn_lt_dph <= s1v_dn_hi_lt_dph | (s1v_dn_hi_eq_dph & s1v_dn_lo_lt_dph);
+            s2v_lt_dmh <= s1v_hi_lt_dmh | (s1v_hi_eq_dmh & s1v_lo_lt_dmh);
+            s2v_lt_dph <= s1v_hi_lt_dph | (s1v_hi_eq_dph & s1v_lo_lt_dph);
         end
     end
 
@@ -252,53 +209,40 @@ module pwm_phase_correct_pipelined(
             gate_vh <= 1'b0;
             gate_vl <= 1'b0;
         end else begin
-            gate_vh <= dir_d2 ?  s2v_dn_lt_dmh :  s2v_up_lt_dmh;
-            gate_vl <= dir_d2 ? ~s2v_dn_lt_dph : ~s2v_up_lt_dph;
+            gate_vh <=  s2v_lt_dmh;
+            gate_vl <= ~s2v_lt_dph;
         end
     end
 
     // ============================================================
     // Phase W pipelined dead-time
     // ============================================================
-    reg s1w_up_hi_lt_dmh, s1w_up_hi_eq_dmh, s1w_up_lo_lt_dmh;
-    reg s1w_up_hi_lt_dph, s1w_up_hi_eq_dph, s1w_up_lo_lt_dph;
-    reg s1w_dn_hi_lt_dmh, s1w_dn_hi_eq_dmh, s1w_dn_lo_lt_dmh;
-    reg s1w_dn_hi_lt_dph, s1w_dn_hi_eq_dph, s1w_dn_lo_lt_dph;
+    reg s1w_hi_lt_dmh, s1w_hi_eq_dmh, s1w_lo_lt_dmh;
+    reg s1w_hi_lt_dph, s1w_hi_eq_dph, s1w_lo_lt_dph;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            s1w_up_hi_lt_dmh <= 1'b0; s1w_up_hi_eq_dmh <= 1'b0; s1w_up_lo_lt_dmh <= 1'b0;
-            s1w_up_hi_lt_dph <= 1'b0; s1w_up_hi_eq_dph <= 1'b0; s1w_up_lo_lt_dph <= 1'b0;
-            s1w_dn_hi_lt_dmh <= 1'b0; s1w_dn_hi_eq_dmh <= 1'b0; s1w_dn_lo_lt_dmh <= 1'b0;
-            s1w_dn_hi_lt_dph <= 1'b0; s1w_dn_hi_eq_dph <= 1'b0; s1w_dn_lo_lt_dph <= 1'b0;
+            s1w_hi_lt_dmh <= 1'b0; s1w_hi_eq_dmh <= 1'b0; s1w_lo_lt_dmh <= 1'b0;
+            s1w_hi_lt_dph <= 1'b0; s1w_hi_eq_dph <= 1'b0; s1w_lo_lt_dph <= 1'b0;
         end else begin
-            s1w_up_hi_lt_dmh <= (counter_up_hi   <  duty_w_dmh_hi);
-            s1w_up_hi_eq_dmh <= (counter_up_hi   == duty_w_dmh_hi);
-            s1w_up_lo_lt_dmh <= (counter_up_lo   <  duty_w_dmh_lo);
-            s1w_up_hi_lt_dph <= (counter_up_hi   <  duty_w_dph_hi);
-            s1w_up_hi_eq_dph <= (counter_up_hi   == duty_w_dph_hi);
-            s1w_up_lo_lt_dph <= (counter_up_lo   <  duty_w_dph_lo);
-            s1w_dn_hi_lt_dmh <= (counter_down_hi <  duty_w_dmh_hi);
-            s1w_dn_hi_eq_dmh <= (counter_down_hi == duty_w_dmh_hi);
-            s1w_dn_lo_lt_dmh <= (counter_down_lo <  duty_w_dmh_lo);
-            s1w_dn_hi_lt_dph <= (counter_down_hi <  duty_w_dph_hi);
-            s1w_dn_hi_eq_dph <= (counter_down_hi == duty_w_dph_hi);
-            s1w_dn_lo_lt_dph <= (counter_down_lo <  duty_w_dph_lo);
+            s1w_hi_lt_dmh <= (counter_hi <  duty_w_dmh_hi);
+            s1w_hi_eq_dmh <= (counter_hi == duty_w_dmh_hi);
+            s1w_lo_lt_dmh <= (counter_lo <  duty_w_dmh_lo);
+            s1w_hi_lt_dph <= (counter_hi <  duty_w_dph_hi);
+            s1w_hi_eq_dph <= (counter_hi == duty_w_dph_hi);
+            s1w_lo_lt_dph <= (counter_lo <  duty_w_dph_lo);
         end
     end
 
-    reg s2w_up_lt_dmh, s2w_up_lt_dph;
-    reg s2w_dn_lt_dmh, s2w_dn_lt_dph;
+    reg s2w_lt_dmh, s2w_lt_dph;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            s2w_up_lt_dmh <= 1'b0; s2w_up_lt_dph <= 1'b0;
-            s2w_dn_lt_dmh <= 1'b0; s2w_dn_lt_dph <= 1'b0;
+            s2w_lt_dmh <= 1'b0;
+            s2w_lt_dph <= 1'b0;
         end else begin
-            s2w_up_lt_dmh <= s1w_up_hi_lt_dmh | (s1w_up_hi_eq_dmh & s1w_up_lo_lt_dmh);
-            s2w_up_lt_dph <= s1w_up_hi_lt_dph | (s1w_up_hi_eq_dph & s1w_up_lo_lt_dph);
-            s2w_dn_lt_dmh <= s1w_dn_hi_lt_dmh | (s1w_dn_hi_eq_dmh & s1w_dn_lo_lt_dmh);
-            s2w_dn_lt_dph <= s1w_dn_hi_lt_dph | (s1w_dn_hi_eq_dph & s1w_dn_lo_lt_dph);
+            s2w_lt_dmh <= s1w_hi_lt_dmh | (s1w_hi_eq_dmh & s1w_lo_lt_dmh);
+            s2w_lt_dph <= s1w_hi_lt_dph | (s1w_hi_eq_dph & s1w_lo_lt_dph);
         end
     end
 
@@ -307,8 +251,8 @@ module pwm_phase_correct_pipelined(
             gate_wh <= 1'b0;
             gate_wl <= 1'b0;
         end else begin
-            gate_wh <= dir_d2 ?  s2w_dn_lt_dmh :  s2w_up_lt_dmh;
-            gate_wl <= dir_d2 ? ~s2w_dn_lt_dph : ~s2w_up_lt_dph;
+            gate_wh <=  s2w_lt_dmh;
+            gate_wl <= ~s2w_lt_dph;
         end
     end
 

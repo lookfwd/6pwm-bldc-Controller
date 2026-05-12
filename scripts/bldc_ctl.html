@@ -287,10 +287,80 @@ function onPortDisconnect() {
 
 async function cleanup() {
   setConnected(false);
+  readLoopAlive = false;
+  try { if (reader) { await reader.cancel().catch(() => {}); reader.releaseLock?.(); } } catch (_) {}
+  reader = null;
   try { if (writer) { await writer.close().catch(() => {}); writer.releaseLock?.(); } } catch (_) {}
   writer = null;
   try { if (port) await port.close(); } catch (_) {}
   port = null;
+  // Blank telemetry on disconnect.
+  teleEls.uMinus.textContent = "—";
+  teleEls.uPlus.textContent  = "—";
+  teleEls.vMinus.textContent = "—";
+  teleEls.vPlus.textContent  = "—";
+  teleEls.wMinus.textContent = "—";
+  teleEls.wPlus.textContent  = "—";
+  teleEls.rate.textContent   = "0";
+}
+
+// Pull telemetry frames off port.readable. Frame format (14 bytes):
+//   [0xAA] [0x55] [u_minus_hi][u_minus_lo] [u_plus_hi][u_plus_lo]
+//                  [v_minus_hi][v_minus_lo] [v_plus_hi][v_plus_lo]
+//                  [w_minus_hi][w_minus_lo] [w_plus_hi][w_plus_lo]
+// Each 11-bit value is sent big-endian in 2 bytes; high byte is always
+// ≤ 0x07 so 0xAA/0x55 cannot collide with data.
+async function startReadLoop() {
+  if (!port || !port.readable) return;
+  readLoopAlive = true;
+  reader = port.readable.getReader();
+  const buf = [];
+
+  // fps counter (updated every 500ms).
+  let frameWindowStart = performance.now();
+  const fpsInterval = setInterval(() => {
+    const now = performance.now();
+    const dt = (now - frameWindowStart) / 1000;
+    if (dt > 0) teleEls.rate.textContent = Math.round(frameCount / dt).toString();
+    frameCount = 0;
+    frameWindowStart = now;
+  }, 500);
+
+  try {
+    while (readLoopAlive) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      for (let i = 0; i < value.length; i++) buf.push(value[i]);
+
+      // Hunt for AA-55 framed packets. Drop one byte at a time until sync.
+      while (buf.length >= 14) {
+        if (buf[0] !== 0xAA || buf[1] !== 0x55) {
+          buf.shift();
+          continue;
+        }
+        const u_minus = ((buf[2] & 0x07) << 8) | buf[3];
+        const u_plus  = ((buf[4] & 0x07) << 8) | buf[5];
+        const v_minus = ((buf[6] & 0x07) << 8) | buf[7];
+        const v_plus  = ((buf[8] & 0x07) << 8) | buf[9];
+        const w_minus = ((buf[10] & 0x07) << 8) | buf[11];
+        const w_plus  = ((buf[12] & 0x07) << 8) | buf[13];
+        teleEls.uMinus.textContent = u_minus.toString();
+        teleEls.uPlus.textContent  = u_plus.toString();
+        teleEls.vMinus.textContent = v_minus.toString();
+        teleEls.vPlus.textContent  = v_plus.toString();
+        teleEls.wMinus.textContent = w_minus.toString();
+        teleEls.wPlus.textContent  = w_plus.toString();
+        frameCount++;
+        buf.splice(0, 14);
+      }
+    }
+  } catch (err) {
+    // Reader was cancelled (normal on disconnect) or hardware error.
+  } finally {
+    clearInterval(fpsInterval);
+    readLoopAlive = false;
+  }
 }
 
 // Build a 5-byte packet: [CMD] [D3] [D2] [D1] [D0] (big-endian).
