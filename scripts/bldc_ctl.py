@@ -3,23 +3,31 @@
 Control the iCE40 SPWM motor controller over UART.
 
 Protocol (matches src/cmd_parser.v):
-    Each command is a 5-byte packet: [CMD] [D3] [D2] [D1] [D0]
-    Data bytes are big-endian — D3 is sent first, D0 last.
+    7-byte packet, MIDI-style framing with XOR checksum:
 
-    CMD 0x01 — set state.    D0 = 0 (OPEN), 1 (RUNNING), 2 (BRAKE)
-    CMD 0x02 — set speed.    D3..D0 = 32-bit NCO phase increment
-    CMD 0x03 — set amplitude. D0 = 0..255
+      [1xxx_xxxx]                  sync/status (MSB=1, low 7 bits = cmd)
+      [0xxx_xxxx] × 5              5 data bytes (7-bit each, big-endian)
+      [0xxx_xxxx]                  XOR checksum (7-bit)
+
+    Any byte with MSB=1 resyncs the receiver to a new packet immediately,
+    so a single bad/dropped byte loses at most one packet.
+
+    Status bytes:
+      0x80 — set_state  (reserved, currently ignored by FPGA)
+      0x81 — set_speed  payload[31:0] = 32-bit NCO phase increment
+      0x82 — set_amp    payload[7:0]  = 8-bit amplitude
+
+    Payload reconstruction (35 bits, big-endian 7-bit chunks):
+      payload = (D4 << 28) | (D3 << 21) | (D2 << 14) | (D1 << 7) | D0
+
+    Checksum = (cmd ^ D4 ^ D3 ^ D2 ^ D1 ^ D0) & 0x7F.
 
 UART line settings: 8N1, 115200 baud, no flow control.
 
-Note: cmd_parser inserts an OPEN sandwich on every state change, so transitions
-RUNNING <-> BRAKE go through a guaranteed dead-time period automatically.
-
 Examples:
-    # Set 50 Hz output, half amplitude, run the motor:
+    # Set 50 Hz output, half amplitude:
     python bldc_ctl.py /dev/ttyUSB1 amp 128
     python bldc_ctl.py /dev/ttyUSB1 speed 50
-    python bldc_ctl.py /dev/ttyUSB1 state running
 
     # Quick 5-second demo run:
     python bldc_ctl.py /dev/ttyUSB1 demo
@@ -29,11 +37,9 @@ Examples:
     with Controller('/dev/ttyUSB1') as c:
         c.set_amplitude(200)
         c.set_speed_hz(60)
-        c.set_state(Controller.STATE_RUNNING)
 """
 
 import argparse
-import struct
 import sys
 import time
 
@@ -45,16 +51,26 @@ import serial
 F_PWM_HZ = 82_500_000 / (2 * 2048)   # ≈ 20141.60 Hz
 
 
+def _pack(cmd, payload):
+    """Build a 7-byte MIDI-framed packet: sync + 5 data + XOR checksum."""
+    cmd     = cmd & 0x7F
+    payload = payload & 0x7FFFFFFFF  # 35-bit clamp
+    sync = 0x80 | cmd
+    d4 = (payload >> 28) & 0x7F
+    d3 = (payload >> 21) & 0x7F
+    d2 = (payload >> 14) & 0x7F
+    d1 = (payload >>  7) & 0x7F
+    d0 = (payload >>  0) & 0x7F
+    cs = (cmd ^ d4 ^ d3 ^ d2 ^ d1 ^ d0) & 0x7F
+    return bytes([sync, d4, d3, d2, d1, d0, cs])
+
+
 class Controller:
-    """Send 5-byte command packets to the BLDC controller over UART."""
+    """Send 7-byte MIDI-framed command packets to the BLDC controller over UART."""
 
-    STATE_OPEN    = 0
-    STATE_RUNNING = 1
-    STATE_BRAKE   = 2
-
-    CMD_STATE = 0x01
-    CMD_SPEED = 0x02
-    CMD_AMP   = 0x03
+    CMD_STATE = 0x00   # reserved, currently ignored by FPGA
+    CMD_SPEED = 0x01
+    CMD_AMP   = 0x02
 
     def __init__(self, port, baud=115200):
         self.ser = serial.Serial(
@@ -76,31 +92,22 @@ class Controller:
         self.close()
 
     def _send(self, cmd, payload):
-        if len(payload) != 4:
-            raise ValueError("payload must be exactly 4 bytes")
-        pkt = bytes([cmd]) + payload
-        self.ser.write(pkt)
+        self.ser.write(_pack(cmd, payload))
         self.ser.flush()
 
     # --- Commands ---------------------------------------------------------
-
-    def set_state(self, state):
-        """0 = OPEN, 1 = RUNNING, 2 = BRAKE."""
-        if state not in (0, 1, 2):
-            raise ValueError(f"state must be 0, 1, or 2; got {state!r}")
-        self._send(self.CMD_STATE, bytes([0, 0, 0, state]))
 
     def set_amplitude(self, amplitude):
         """8-bit unsigned amplitude scale, 0..255."""
         if not 0 <= amplitude <= 255:
             raise ValueError(f"amplitude out of range: {amplitude}")
-        self._send(self.CMD_AMP, bytes([0, 0, 0, amplitude]))
+        self._send(self.CMD_AMP, amplitude)
 
     def set_speed_inc(self, phase_inc):
         """Set the raw 32-bit NCO phase increment."""
         if not 0 <= phase_inc <= 0xFFFFFFFF:
             raise ValueError(f"phase_inc out of 32-bit range: {phase_inc}")
-        self._send(self.CMD_SPEED, struct.pack(">I", phase_inc))
+        self._send(self.CMD_SPEED, phase_inc)
 
     def set_speed_hz(self, freq_hz):
         """
@@ -114,9 +121,6 @@ class Controller:
 
 
 # --- CLI ------------------------------------------------------------------
-
-_STATE_NAMES = {"open": 0, "running": 1, "brake": 2}
-
 
 def _int_auto(s):
     """argparse type accepting decimal or 0x-prefixed hex."""
@@ -132,9 +136,6 @@ def main(argv=None):
     p.add_argument("--baud", type=int, default=115200)
 
     sub = p.add_subparsers(dest="cmd", required=True)
-
-    sp = sub.add_parser("state", help="Set controller state")
-    sp.add_argument("which", choices=list(_STATE_NAMES))
 
     sp = sub.add_parser("amp", help="Set amplitude (0..255)")
     sp.add_argument("value", type=int)
@@ -154,11 +155,7 @@ def main(argv=None):
 
     try:
         with Controller(args.port, args.baud) as c:
-            if args.cmd == "state":
-                c.set_state(_STATE_NAMES[args.which])
-                print(f"state = {args.which.upper()}")
-
-            elif args.cmd == "amp":
+            if args.cmd == "amp":
                 c.set_amplitude(args.value)
                 print(f"amplitude = {args.value}")
 
@@ -172,14 +169,13 @@ def main(argv=None):
                 print(f"phase_inc = {args.value} (0x{args.value:08X}) ≈ {hz:.3f} Hz")
 
             elif args.cmd == "demo":
-                print(f"amp={args.amp}, speed={args.hz} Hz, state=RUNNING")
+                print(f"amp={args.amp}, speed={args.hz} Hz")
                 c.set_amplitude(args.amp)
                 c.set_speed_hz(args.hz)
-                c.set_state(Controller.STATE_RUNNING)
                 print(f"running for {args.seconds} s …")
                 time.sleep(args.seconds)
-                print("state=OPEN")
-                c.set_state(Controller.STATE_OPEN)
+                c.set_amplitude(0)
+                print("amp=0")
 
     except serial.SerialException as e:
         print(f"serial error: {e}", file=sys.stderr)

@@ -191,9 +191,10 @@
 // PWM frequency: clk_fast / (2 * counter_period) = 82.5 MHz / (2 * 2048)
 const F_PWM_HZ = 82_500_000 / (2 * 2048);   // ≈ 20141.60 Hz
 
-const CMD_STATE = 0x01;
-const CMD_SPEED = 0x02;
-const CMD_AMP   = 0x03;
+// Status-byte command codes (low 7 bits of the sync byte).
+const CMD_STATE = 0x00;   // reserved; FPGA currently ignores
+const CMD_SPEED = 0x01;
+const CMD_AMP   = 0x02;
 
 const MODE_NAMES = { 0: "OPEN", 1: "RUNNING", 2: "BRAKE" };
 
@@ -363,16 +364,19 @@ async function startReadLoop() {
   }
 }
 
-// Build a 5-byte packet: [CMD] [D3] [D2] [D1] [D0] (big-endian).
-function packet(cmd, value32) {
-  const v = value32 >>> 0;
-  return new Uint8Array([
-    cmd,
-    (v >>> 24) & 0xff,
-    (v >>> 16) & 0xff,
-    (v >>>  8) & 0xff,
-    (v >>>  0) & 0xff,
-  ]);
+// Build a 7-byte MIDI-framed packet:
+//   [sync = 0x80|cmd] [D4][D3][D2][D1][D0] [XOR checksum]
+// Each non-sync byte has MSB=0; payload is 5 × 7 = 35 bits, big-endian.
+function packet(cmd, payload) {
+  const v = payload >>> 0;
+  const sync = 0x80 | (cmd & 0x7F);
+  const d4 = (v >>> 28) & 0x7F;
+  const d3 = (v >>> 21) & 0x7F;
+  const d2 = (v >>> 14) & 0x7F;
+  const d1 = (v >>>  7) & 0x7F;
+  const d0 = (v >>>  0) & 0x7F;
+  const cs = (cmd ^ d4 ^ d3 ^ d2 ^ d1 ^ d0) & 0x7F;
+  return new Uint8Array([sync, d4, d3, d2, d1, d0, cs]);
 }
 
 // Coalesce while a write is in flight: only the most recent packet for a
