@@ -35,7 +35,12 @@ module spwm_tdm #(
     output reg  [10:0] v_minus,
     output reg  [11:0] v_plus,
     output reg  [10:0] w_minus,
-    output reg  [11:0] w_plus
+    output reg  [11:0] w_plus,
+
+    // Phase U sine-sign indicator. Equal to nco_acc[31]: HIGH while the sine
+    // is in its negative half (180°..360°), LOW in the positive half.
+    // Toggles at every zero crossing → period == fundamental output period.
+    output wire        sine_sign
 );
 
     // Sine LUT — 2048 × 16-bit, unsigned offset-binary
@@ -80,6 +85,7 @@ module spwm_tdm #(
     // Integrated NCO — 32-bit phase accumulator
     reg [31:0] nco_acc;
     wire [10:0] base_phase = nco_acc[31:21];
+    assign sine_sign = nco_acc[31];   // top bit = sign of sin(phase)
 
     // Multiplier pipeline (registered output for timing closure).
     // All unsigned: LUT is offset-binary, amplitude is unsigned 0..255.

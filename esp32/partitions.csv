@@ -1,0 +1,6 @@
+# Single-app partition table for the SPWM firmware.  No OTA, no NVS persistence
+# (the host always supplies the live setpoint over UART).
+# Name,   Type, SubType, Offset,   Size,   Flags
+nvs,      data, nvs,     0x9000,   0x6000,
+phy_init, data, phy,     0xf000,   0x1000,
+factory,  app,  factory, 0x10000,  1500K,

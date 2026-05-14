@@ -1,0 +1,6 @@
+## IDF Component Manager manifest for the firmware's main component.
+## Pulled in on first `pio run` (or `idf.py reconfigure`); cached under
+## .pio/build/<env>/managed_components/.
+
+dependencies:
+  espressif/led_strip: "^3.0.0"

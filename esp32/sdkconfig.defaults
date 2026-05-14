@@ -1,0 +1,21 @@
+# Baseline sdkconfig overrides for the SPWM port. Anything here is applied
+# the first time `idf.py build` runs and copied into sdkconfig; re-run
+# `idf.py fullclean` to pick up changes.
+
+# Target the S3.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Place the MCPWM TEZ ISR in IRAM so we don't take a cache miss every PWM
+# period. The driver already supports IRAM ISR via this flag.
+CONFIG_MCPWM_ISR_IRAM_SAFE=y
+
+# FreeRTOS tick @ 1 kHz keeps task latency low without burning CPU.
+CONFIG_FREERTOS_HZ=1000
+
+# Keep the bootloader / log noise reasonable on the USB-CDC monitor.
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_BOOTLOADER_LOG_LEVEL_WARN=y
+
+# Use the project's partition table.
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"

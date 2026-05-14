@@ -104,6 +104,7 @@ module top (
     //              comparison against 11-bit counter cleanly evaluates false)
     wire [10:0] u_minus, v_minus, w_minus;
     wire [11:0] u_plus,  v_plus,  w_plus;
+    wire        sine_sign;
 
     spwm_tdm #(.HALF_DEAD_TIME(11'd25)) u_tdm (
         .clk       (clk_slow),
@@ -116,7 +117,8 @@ module top (
         .v_minus   (v_minus),
         .v_plus    (v_plus),
         .w_minus   (w_minus),
-        .w_plus    (w_plus)
+        .w_plus    (w_plus),
+        .sine_sign (sine_sign)
     );
 	
 	wire gate_uh, gate_ul, gate_vh, gate_vl, gate_wh, gate_wl;
@@ -149,12 +151,11 @@ module top (
         .tx    (uart_tx)
     );
 
-    // ---- Heartbeat LED (slow domain — ~2.46 Hz blink at 20.625 MHz) ----
-    reg [22:0] hb_cnt;
-    always @(posedge clk_slow or negedge rst_n) begin
-        if (!rst_n) hb_cnt <= 23'd0;
-        else        hb_cnt <= hb_cnt + 23'd1;
-    end
-    assign led_heartbeat = hb_cnt[22];
+    // ---- Heartbeat LED — tracks phase U's sine sign ----
+    // Toggles at every zero crossing, so the LED's blink period equals the
+    // commanded fundamental period (LED freq = motor freq). Stays still
+    // when phase_inc = 0, off-by-default state-of-life indicator: visible
+    // blink at low Hz, looks steady-on (PoV) above ~20 Hz.
+    assign led_heartbeat = sine_sign;
 
 endmodule

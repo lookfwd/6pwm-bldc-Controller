@@ -163,7 +163,7 @@
 
     <div class="row">
       <label for="speed">Speed (Negative means Reverse)<span class="val"><span id="speed-val">0</span> Hz</span></label>
-      <input id="speed" type="range" min="-200" max="200" step="1" value="0">
+      <input id="speed" type="range" min="-200" max="200" step="0.1" value="0">
     </div>
 
     <div class="row">
@@ -425,7 +425,7 @@ modeSel.addEventListener("change", () => {
 });
 
 speedSl.addEventListener("input", () => {
-  speedValEl.textContent = speedSl.value;
+  speedValEl.textContent = (+speedSl.value).toFixed(1);
   sendSpeed(+speedSl.value);
 });
 
@@ -436,7 +436,7 @@ ampSl.addEventListener("input", () => {
 
 // Initialize labels from default slider values.
 modeValEl.textContent  = MODE_NAMES[+modeSel.value];
-speedValEl.textContent = speedSl.value;
+speedValEl.textContent = (+speedSl.value).toFixed(1);
 ampValEl.textContent   = ampSl.value;
 </script>
 </body>
